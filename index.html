@@ -75,6 +75,8 @@ body{
   border:1px solid var(--line);
   border-radius:18px;
   padding:16px 14px;
+  min-width:0;
+  overflow:hidden;
 }
 .hero-item.main{
   padding:18px 16px;
@@ -92,11 +94,35 @@ body{
   margin-bottom:8px;
 }
 .hero-value{
-  font-size:clamp(32px, 7vw, 42px);
-  line-height:1.02;
+  line-height:1.05;
   font-weight:900;
   letter-spacing:-.5px;
-  word-break:break-all;
+  white-space:nowrap;
+  overflow:hidden;
+}
+
+.top-stat-value{
+  font-size:42px;
+}
+
+.budget-value{
+  font-size:42px;
+}
+
+.top-stat-value.digits-4{
+  font-size:34px;
+}
+.top-stat-value.digits-5{
+  font-size:28px;
+}
+.top-stat-value.digits-6{
+  font-size:24px;
+}
+.top-stat-value.wan-value{
+  font-size:30px;
+}
+.top-stat-value.wan-value.long-wan{
+  font-size:22px;
 }
 .hero-sub{
   margin-top:8px;
@@ -447,7 +473,8 @@ input[readonly]{
 }
 @media (max-width:560px){
   .title{font-size:26px}
-  .hero-value{font-size:36px}
+  .top-stat-value{font-size:36px}
+  .budget-value{font-size:36px}
   .hero-label{font-size:17px}
 }
 </style>
@@ -461,12 +488,12 @@ input[readonly]{
     <div class="hero-main">
       <div class="hero-item main">
         <div class="hero-label">今日已花</div>
-        <div class="hero-value" id="todaySpent">¥0</div>
+        <div class="hero-value top-stat-value" id="todaySpent">¥0</div>
         <div class="hero-sub">今天所有记录合计</div>
       </div>
       <div class="hero-item main">
         <div class="hero-label">本月已花</div>
-        <div class="hero-value" id="monthSpent">¥0</div>
+        <div class="hero-value top-stat-value" id="monthSpent">¥0</div>
         <div class="hero-sub">当前月份累计</div>
       </div>
     </div>
@@ -474,12 +501,12 @@ input[readonly]{
         <div class="hero-subgrid">
       <div class="hero-item">
         <div class="hero-label sub">本月已存</div>
-        <div class="hero-value" id="monthSaved">¥0</div>
+        <div class="hero-value top-stat-value" id="monthSaved">¥0</div>
         <div class="hero-sub">本月收入 - 本月支出</div>
       </div>
       <div class="hero-item">
         <div class="hero-label sub">总已存</div>
-        <div class="hero-value" id="totalSaved">¥0</div>
+        <div class="hero-value top-stat-value" id="totalSaved">¥0</div>
         <div class="hero-sub">总收入 - 总支出</div>
       </div>
     </div>
@@ -487,7 +514,7 @@ input[readonly]{
         <div class="hero-subgrid income-row">
   <div class="hero-item">
     <div class="hero-label sub">本月收入</div>
-    <div class="hero-value" id="monthIncome">¥0</div>
+    <div class="hero-value top-stat-value" id="monthIncome">¥0</div>
     <div class="hero-sub">当前月份收入</div>
   </div>
 </div>
@@ -495,12 +522,12 @@ input[readonly]{
     <div class="hero-subgrid" id="budgetGrid" style="display:none">
       <div class="hero-item">
         <div class="hero-label sub">今天还能花</div>
-        <div class="hero-value" id="todayRemain">¥0</div>
+        <div class="hero-value budget-value" id="todayRemain">¥0</div>
         <div class="hero-sub">预算开启后显示</div>
       </div>
       <div class="hero-item">
         <div class="hero-label sub">本月剩余</div>
-        <div class="hero-value" id="monthRemain">¥0</div>
+        <div class="hero-value budget-value" id="monthRemain">¥0</div>
         <div class="hero-sub">预算开启后显示</div>
       </div>
     </div>
@@ -799,10 +826,17 @@ function statMoney(n){
   const num = Number(n || 0);
   const abs = Math.abs(num);
 
-  if(abs >= 10000){
+  if(abs >= 1000000){
     const wan = num / 10000;
     let text = wan.toFixed(1);
     if(text.endsWith(".0")) text = text.slice(0, -2);
+    return "¥" + text + "万";
+  }
+
+  if(abs >= 100000){
+    const wan = num / 10000;
+    let text = wan.toFixed(2);
+    text = text.replace(/0+$/,"").replace(/\.$/,"");
     return "¥" + text + "万";
   }
 
@@ -904,6 +938,40 @@ function applyStatColors(){
   document.getElementById("totalSaved").style.color = state.colors?.totalSaved || "#059669";
 }
 
+function applyHeroValueSize(){
+  const ids = ["todaySpent","monthSpent","monthIncome","monthSaved","totalSaved"];
+
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+
+    el.classList.remove("digits-4","digits-5","digits-6","wan-value","long-wan");
+
+    const text = (el.textContent || "").trim();
+
+    if(text.includes("万")){
+  el.classList.add("wan-value");
+  if(text.length >= 6){
+    el.classList.add("long-wan");
+  }
+  return;
+}
+
+    const pure = text.replace(/[¥\-\.\,]/g, "");
+    const len = pure.length;
+
+    if(len === 4){
+      el.classList.add("digits-4");
+    }else if(len === 5){
+      el.classList.add("digits-5");
+    }else if(len >= 6){
+      el.classList.add("digits-6");
+    }
+  });
+}
+
+function autoFitHeroValues(){}
+
 function renderColorInputs(){
   document.getElementById("todayColorInput").value = state.colors?.today || "#1d4ed8";
   document.getElementById("monthColorInput").value = state.colors?.month || "#7c3aed";
@@ -932,6 +1000,7 @@ function renderTop(){
 
   applyStatColors();
 
+  applyHeroValueSize();
   document.getElementById("currentMonthText").value = formatMonthCN(currentMonth);
   document.getElementById("incomeInput").value = currentMonthIncome || "";
 
