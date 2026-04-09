@@ -736,6 +736,7 @@ const CATEGORY_META = {
   "日用品": { icon:"🧴", color:"#f59e0b" },
   "衣物": { icon:"👕", color:"#ec4899" },
   "娱乐": { icon:"🎮", color:"#ef4444" },
+"AI软件": { icon:"🤖", color:"#6366f1" },
   "居家杂费": { icon:"📦", color:"#14b8a6" },
   "其他": { icon:"📝", color:"#6b7280" }
 };
@@ -904,6 +905,7 @@ function detectCategory(note){
     { category:"日用品", keys:["牙膏","牙刷","洗发水","沐浴露","毛巾","纸","抽纸","卫生纸","洗衣液","肥皂","洗面奶","日用品","湿巾","纸巾"] },
     { category:"衣物", keys:["衣服","裤子","鞋","袜子","外套","T恤","短袖","长裤","拖鞋","帽子","卫衣","衬衫"] },
     { category:"娱乐", keys:["游戏","充值","会员","电影","网吧","KTV","小说","漫画","娱乐","steam","皮肤"] },
+    { category:"AI软件", keys:["chatgpt","gpt","claude","kimi","豆包","即梦","可灵","midjourney","mj","cursor","ai","人工智能"] },
     { category:"居家杂费", keys:["话费","电费","水费","房租","快递","运费","杂费","宽带","维修"] }
   ];
 
@@ -939,34 +941,67 @@ function applyStatColors(){
 }
 
 function applyHeroValueSize(){
-  const ids = ["todaySpent","monthSpent","monthIncome","monthSaved","totalSaved"];
+  const pairGroups = [
+    ["todaySpent", "monthSpent"],
+    ["monthSaved", "totalSaved"]
+  ];
 
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if(!el) return;
+  const singleGroups = [
+    "monthIncome"
+  ];
 
-    el.classList.remove("digits-4","digits-5","digits-6","wan-value","long-wan");
-
-    const text = (el.textContent || "").trim();
-
+  function getSizeClass(text){
     if(text.includes("万")){
-  el.classList.add("wan-value");
-  if(text.length >= 6){
-    el.classList.add("long-wan");
-  }
-  return;
-}
+      return text.length >= 6 ? "long-wan" : "wan-value";
+    }
 
-    const pure = text.replace(/[¥\-\.\,]/g, "");
+    const pure = text.replace(/[¥\.\,]/g, "");
     const len = pure.length;
 
-    if(len === 4){
-      el.classList.add("digits-4");
-    }else if(len === 5){
-      el.classList.add("digits-5");
-    }else if(len >= 6){
-      el.classList.add("digits-6");
+    if(len >= 6) return "digits-6";
+    if(len === 5) return "digits-5";
+    if(len === 4) return "digits-4";
+    return "";
+  }
+
+  function getClassLevel(className){
+    const order = {
+      "": 0,
+      "digits-4": 1,
+      "digits-5": 2,
+      "digits-6": 3,
+      "wan-value": 4,
+      "long-wan": 5
+    };
+    return order[className] ?? 0;
+  }
+
+  function applyClass(el, className){
+    if(!el) return;
+    el.classList.remove("digits-4","digits-5","digits-6","wan-value","long-wan");
+    if(className){
+      el.classList.add(className);
+      if(className === "long-wan"){
+        el.classList.add("wan-value");
+      }
     }
+  }
+
+  pairGroups.forEach(group => {
+    const els = group.map(id => document.getElementById(id)).filter(Boolean);
+    const classes = els.map(el => getSizeClass((el.textContent || "").trim()));
+    const finalClass = classes.reduce((a, b) => {
+      return getClassLevel(b) > getClassLevel(a) ? b : a;
+    }, "");
+
+    els.forEach(el => applyClass(el, finalClass));
+  });
+
+  singleGroups.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const className = getSizeClass((el.textContent || "").trim());
+    applyClass(el, className);
   });
 }
 
