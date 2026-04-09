@@ -14,9 +14,6 @@
   --accent:#2563eb;
   --good:#059669;
   --warn:#dc2626;
-  --spent1:#1d4ed8;
-  --spent2:#7c3aed;
-  --remain1:#059669;
   --shadow:0 10px 30px rgba(0,0,0,.06);
 }
 *{box-sizing:border-box}
@@ -27,7 +24,7 @@ body{
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
 }
 .wrap{
-  max-width:860px;
+  max-width:920px;
   margin:0 auto;
   padding:16px 14px 40px;
 }
@@ -64,6 +61,12 @@ body{
   gap:12px;
   margin-top:12px;
 }
+.hero-stats{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
 .hero-item{
   background:#f8fbff;
   border:1px solid var(--line);
@@ -78,7 +81,6 @@ body{
   font-weight:800;
   color:#1f2937;
   margin-bottom:10px;
-  letter-spacing:.2px;
 }
 .hero-label.sub{
   font-size:15px;
@@ -87,22 +89,10 @@ body{
   margin-bottom:8px;
 }
 .hero-value{
-  font-size:44px;
+  font-size:42px;
   line-height:1.02;
   font-weight:900;
   letter-spacing:-.5px;
-}
-.hero-value.main-today{
-  color:var(--spent1);
-}
-.hero-value.main-month{
-  color:var(--spent2);
-}
-.hero-value.good{
-  color:var(--remain1);
-}
-.hero-value.warn{
-  color:var(--warn);
 }
 .hero-sub{
   margin-top:8px;
@@ -130,10 +120,10 @@ label{
   color:var(--sub);
   margin-bottom:6px;
 }
-input,button{
+input,button,select{
   font:inherit;
 }
-input[type="text"],input[type="number"],input[type="color"]{
+input[type="text"],input[type="number"],input[type="color"],select{
   width:100%;
   padding:14px 14px;
   border:1px solid #d1d5db;
@@ -141,13 +131,16 @@ input[type="text"],input[type="number"],input[type="color"]{
   background:#fff;
   outline:none;
 }
-input[type="text"]:focus,input[type="number"]:focus,input[type="color"]:focus{
+input[type="text"]:focus,input[type="number"]:focus,input[type="color"]:focus,select:focus{
   border-color:var(--accent);
   box-shadow:0 0 0 3px rgba(37,99,235,.12);
 }
 input[type="color"]{
   padding:8px;
   height:52px;
+}
+input[readonly]{
+  background:#f8fafc;
 }
 .row{
   display:flex;
@@ -172,6 +165,10 @@ input[type="color"]{
 .btn.gray{
   background:#edf2f7;
   color:#111827;
+}
+.btn.danger{
+  background:#fee2e2;
+  color:#991b1b;
 }
 .btn.small{
   padding:9px 12px;
@@ -198,9 +195,6 @@ input[type="color"]{
   font-size:13px;
   cursor:pointer;
 }
-.note-chip:hover{
-  background:#f8fafc;
-}
 .note-tip{
   margin-top:8px;
   font-size:12px;
@@ -212,9 +206,7 @@ input[type="color"]{
   padding-top:12px;
   border-top:1px dashed var(--line);
 }
-.setting-box.show{
-  display:block;
-}
+.setting-box.show{ display:block; }
 .list{
   display:flex;
   flex-direction:column;
@@ -229,10 +221,14 @@ input[type="color"]{
   padding:12px 14px;
   background:#fff;
 }
+.item-left{
+  min-width:0;
+}
 .item-title{
   font-size:15px;
   font-weight:700;
   margin-bottom:4px;
+  word-break:break-all;
 }
 .item-sub{
   font-size:12px;
@@ -242,6 +238,12 @@ input[type="color"]{
   white-space:nowrap;
   font-size:18px;
   font-weight:800;
+}
+.item-actions{
+  display:flex;
+  gap:8px;
+  margin-top:8px;
+  flex-wrap:wrap;
 }
 .empty{
   color:var(--sub);
@@ -279,14 +281,14 @@ input[type="color"]{
   color:#1e3a8a;
 }
 .history-row{
+  border-top:1px dashed var(--line);
+  padding:10px 0;
+}
+.history-row:first-of-type{ border-top:0; }
+.history-row-top{
   display:flex;
   justify-content:space-between;
   gap:10px;
-  padding:8px 0;
-  border-top:1px dashed var(--line);
-}
-.history-row:first-of-type{
-  border-top:0;
 }
 .small{
   font-size:12px;
@@ -315,9 +317,7 @@ input[type="color"]{
 .tab-panel{
   display:none;
 }
-.tab-panel.show{
-  display:block;
-}
+.tab-panel.show{ display:block; }
 .chart-wrap{
   overflow-x:auto;
 }
@@ -376,16 +376,75 @@ input[type="color"]{
   font-size:12px;
   color:var(--sub);
 }
-.color-preview{
-  font-size:12px;
-  color:var(--sub);
-  margin-top:6px;
+.summary-box{
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#fbfdff;
+  padding:14px;
+  line-height:1.8;
+}
+.search-box{
+  margin-bottom:12px;
+}
+.icon-badge{
+  font-size:18px;
+  margin-right:6px;
+}
+.pie-grid{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:16px;
+  align-items:center;
+}
+.pie-wrap{
+  display:flex;
+  justify-content:center;
+}
+.pie-legend{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.legend-row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px 12px;
+  background:#fff;
+}
+.legend-left{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.modal-mask{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:1000;
+}
+.modal-mask.show{ display:flex; }
+.modal{
+  background:#fff;
+  border-radius:20px;
+  width:min(560px,100%);
+  padding:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+@media (max-width:700px){
+  .hero-stats{ grid-template-columns:1fr; }
+  .pie-grid{ grid-template-columns:1fr; }
 }
 @media (max-width:560px){
   .title{font-size:26px}
-  .hero-value{font-size:38px}
+  .hero-value{font-size:36px}
   .hero-label{font-size:17px}
-  .hero-main,.hero-subgrid{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
@@ -398,13 +457,31 @@ input[type="color"]{
     <div class="hero-main">
       <div class="hero-item main">
         <div class="hero-label">今日已花</div>
-        <div class="hero-value main-today" id="todaySpent">¥0</div>
+        <div class="hero-value" id="todaySpent">¥0</div>
         <div class="hero-sub">今天所有记录合计</div>
       </div>
       <div class="hero-item main">
         <div class="hero-label">本月已花</div>
-        <div class="hero-value main-month" id="monthSpent">¥0</div>
+        <div class="hero-value" id="monthSpent">¥0</div>
         <div class="hero-sub">当前月份累计</div>
+      </div>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hero-item">
+        <div class="hero-label sub">本月收入</div>
+        <div class="hero-value" id="monthIncome">¥0</div>
+        <div class="hero-sub">当前月份收入</div>
+      </div>
+      <div class="hero-item">
+        <div class="hero-label sub">本月已存</div>
+        <div class="hero-value" id="monthSaved">¥0</div>
+        <div class="hero-sub">本月收入 - 本月支出</div>
+      </div>
+      <div class="hero-item">
+        <div class="hero-label sub">总已存</div>
+        <div class="hero-value" id="totalSaved">¥0</div>
+        <div class="hero-sub">总收入 - 总支出</div>
       </div>
     </div>
 
@@ -433,12 +510,12 @@ input[type="color"]{
       </div>
       <div>
         <label for="noteInput">备注</label>
-        <input id="noteInput" type="text" placeholder="例如：饮料、零食、午饭">
+        <input id="noteInput" type="text" placeholder="例如：奶茶、午饭、衣服">
       </div>
     </div>
 
     <div class="quick-notes" id="noteMemory"></div>
-    <div class="note-tip">备注会自动记住，之后直接点一下就能填入。</div>
+    <div class="note-tip">备注会自动记住。分类和图标会根据备注自动识别。</div>
 
     <div class="footer-actions">
       <button class="btn primary big" id="addBtn">记账</button>
@@ -451,6 +528,8 @@ input[type="color"]{
       <button class="tab-btn active" data-tab="todayTab">今天记录</button>
       <button class="tab-btn" data-tab="historyTab">历史记录</button>
       <button class="tab-btn" data-tab="chartTab">图表</button>
+      <button class="tab-btn" data-tab="analysisTab">分析</button>
+      <button class="tab-btn" data-tab="summaryTab">月度总结</button>
     </div>
 
     <div id="todayTab" class="tab-panel show">
@@ -459,6 +538,9 @@ input[type="color"]{
     </div>
 
     <div id="historyTab" class="tab-panel">
+      <div class="search-box">
+        <input id="searchInput" type="text" placeholder="搜索备注，例如：奶茶、衣服、午饭">
+      </div>
       <div id="historyList"></div>
       <div id="emptyHistoryText" class="empty">还没有历史记录。</div>
     </div>
@@ -473,6 +555,37 @@ input[type="color"]{
         <div class="chart" id="chartBox"></div>
       </div>
       <div class="budget-line-tip" id="chartTip">显示最近 7 天消费总额。</div>
+    </div>
+
+    <div id="analysisTab" class="tab-panel">
+      <div class="pie-grid">
+        <div class="pie-wrap">
+          <svg id="pieChart" width="220" height="220" viewBox="0 0 220 220"></svg>
+        </div>
+        <div class="pie-legend" id="pieLegend"></div>
+      </div>
+      <div class="budget-line-tip">显示本月分类消费占比。</div>
+    </div>
+
+    <div id="summaryTab" class="tab-panel">
+      <div class="summary-box" id="summaryBox"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">本月收入设置</div>
+    <div class="row">
+      <div>
+        <label>当前月份</label>
+        <input id="currentMonthText" type="text" readonly>
+      </div>
+      <div>
+        <label for="incomeInput">本月收入（元）</label>
+        <input id="incomeInput" type="number" min="0" step="1" placeholder="例如 5500">
+      </div>
+    </div>
+    <div class="footer-actions">
+      <button class="btn primary" id="saveIncomeBtn">保存本月收入</button>
     </div>
   </div>
 
@@ -510,18 +623,36 @@ input[type="color"]{
 
       <div style="margin-top:14px">
         <div class="section-title" style="font-size:16px;margin-bottom:10px">首页金额颜色</div>
+
         <div class="row">
           <div>
             <label for="todayColorInput">今日已花颜色</label>
             <input id="todayColorInput" type="color">
-            <div class="color-preview">首页左侧大数字颜色</div>
           </div>
           <div>
             <label for="monthColorInput">本月已花颜色</label>
             <input id="monthColorInput" type="color">
-            <div class="color-preview">首页右侧大数字颜色</div>
           </div>
         </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="incomeColorInput">本月收入颜色</label>
+            <input id="incomeColorInput" type="color">
+          </div>
+          <div>
+            <label for="monthSavedColorInput">本月已存颜色</label>
+            <input id="monthSavedColorInput" type="color">
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="totalSavedColorInput">总已存颜色</label>
+            <input id="totalSavedColorInput" type="color">
+          </div>
+        </div>
+
         <div class="footer-actions">
           <button class="btn primary" id="saveColorsBtn">保存颜色</button>
           <button class="btn gray" id="resetColorsBtn">恢复默认颜色</button>
@@ -536,14 +667,81 @@ input[type="color"]{
   </div>
 </div>
 
+<div id="editModalMask" class="modal-mask">
+  <div class="modal">
+    <div class="section-title">编辑记录</div>
+    <div class="row">
+      <div>
+        <label for="editAmountInput">金额</label>
+        <input id="editAmountInput" type="number" min="0" step="0.01">
+      </div>
+      <div>
+        <label for="editCategoryInput">分类</label>
+        <select id="editCategoryInput"></select>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <label for="editNoteInput">备注</label>
+      <input id="editNoteInput" type="text">
+    </div>
+    <div class="footer-actions">
+      <button class="btn primary" id="saveEditBtn">保存修改</button>
+      <button class="btn gray" id="cancelEditBtn">取消</button>
+      <button class="btn danger" id="deleteEditBtn">删除这条</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const KEY = "daily_spend_v5";
 
-let state = JSON.parse(localStorage.getItem(KEY) || '{"budgetEnabled":false,"budget":0,"items":[],"noteMemory":[],"settingsOpen":false,"activeTab":"todayTab","chartRange":"7","colors":{"today":"#1d4ed8","month":"#7c3aed"}}');
+const CATEGORY_META = {
+  "吃饭": { icon:"🍚", color:"#3b82f6" },
+  "饮料零食": { icon:"🥤", color:"#8b5cf6" },
+  "交通": { icon:"🚌", color:"#10b981" },
+  "日用品": { icon:"🧴", color:"#f59e0b" },
+  "衣物": { icon:"👕", color:"#ec4899" },
+  "娱乐": { icon:"🎮", color:"#ef4444" },
+  "居家杂费": { icon:"📦", color:"#14b8a6" },
+  "其他": { icon:"📝", color:"#6b7280" }
+};
 
-if(!state.colors){
-  state.colors = { today:"#1d4ed8", month:"#7c3aed" };
+const DEFAULT_STATE = {
+  budgetEnabled:false,
+  budget:0,
+  items:[],
+  noteMemory:[],
+  settingsOpen:false,
+  activeTab:"todayTab",
+  chartRange:"7",
+  incomes:{},
+  colors:{
+    today:"#1d4ed8",
+    month:"#7c3aed",
+    income:"#111827",
+    monthSaved:"#059669",
+    totalSaved:"#059669"
+  }
+};
+
+let saved = {};
+try{
+  saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+}catch(e){
+  saved = {};
 }
+
+let state = {
+  ...DEFAULT_STATE,
+  ...saved,
+  incomes: { ...(DEFAULT_STATE.incomes||{}), ...(saved.incomes||{}) },
+  colors: { ...(DEFAULT_STATE.colors||{}), ...(saved.colors||{}) }
+};
+
+state.items = Array.isArray(state.items) ? state.items : [];
+state.noteMemory = Array.isArray(state.noteMemory) ? state.noteMemory : [];
+
+let currentEditId = null;
 
 function saveState(){
   localStorage.setItem(KEY, JSON.stringify(state));
@@ -572,6 +770,11 @@ function formatDateCN(dateStr){
   return `${y}年${m}月${d}日 ${wk[dt.getDay()]}`;
 }
 
+function formatMonthCN(month){
+  const [y,m] = month.split("-").map(Number);
+  return `${y}年${m}月`;
+}
+
 function renderDateLine(){
   document.getElementById("dateLine").textContent = formatDateCN(todayStr());
 }
@@ -590,12 +793,28 @@ function sum(arr){
   return arr.reduce((a,b)=>a + Number(b.amount || 0), 0);
 }
 
+function sumIncomes(){
+  return Object.values(state.incomes || {}).reduce((a,b)=>a + Number(b || 0), 0);
+}
+
 function todayItems(){
   return state.items.filter(i => i.date === todayStr());
 }
 
-function monthItems(){
-  return state.items.filter(i => i.date.startsWith(monthStr()));
+function monthItems(month = monthStr()){
+  return state.items.filter(i => i.date.startsWith(month));
+}
+
+function monthIncome(month = monthStr()){
+  return Number(state.incomes?.[month] || 0);
+}
+
+function totalExpense(){
+  return sum(state.items);
+}
+
+function totalSaved(){
+  return sumIncomes() - totalExpense();
 }
 
 function updateNoteMemory(note){
@@ -615,25 +834,89 @@ function escapeHtml(str){
     .replaceAll("'","&#39;");
 }
 
+function stripPrefix(text){
+  return text
+    .replace(/^(淘宝|拼多多|京东|美团|饿了么|抖音|微信|支付宝|线下|超市|便利店)\s*/i, "")
+    .trim();
+}
+
+function detectCategory(note){
+  const raw = (note || "").trim();
+  const text = stripPrefix(raw);
+
+  const rules = [
+    { category:"吃饭", keys:["早餐","午饭","晚饭","夜宵","米饭","面","粉","菜","外卖","快餐","饭","麻辣烫","炒饭","盖饭","汉堡","肯德基","麦当劳","饺子","馄饨","粥"] },
+    { category:"饮料零食", keys:["饮料","奶茶","咖啡","可乐","雪碧","水","矿泉水","茶","柠檬茶","零食","薯片","饼干","辣条","糖","巧克力","冰淇淋","面包","蛋糕","酸奶"] },
+    { category:"交通", keys:["公交","地铁","打车","滴滴","车费","交通","单车","电车","高铁","火车","加油","停车"] },
+    { category:"日用品", keys:["牙膏","牙刷","洗发水","沐浴露","毛巾","纸","抽纸","卫生纸","洗衣液","肥皂","洗面奶","日用品","湿巾","纸巾"] },
+    { category:"衣物", keys:["衣服","裤子","鞋","袜子","外套","T恤","短袖","长裤","拖鞋","帽子","卫衣","衬衫"] },
+    { category:"娱乐", keys:["游戏","充值","会员","电影","网吧","KTV","小说","漫画","娱乐","steam","皮肤"] },
+    { category:"居家杂费", keys:["话费","电费","水费","房租","快递","运费","杂费","宽带","维修"] }
+  ];
+
+  for(const rule of rules){
+    if(rule.keys.some(k => raw.includes(k) || text.includes(k))){
+      return rule.category;
+    }
+  }
+  return "其他";
+}
+
+function enrichItem(item){
+  if(!item.category){
+    item.category = detectCategory(item.note || "");
+  }
+  if(!item.icon){
+    item.icon = CATEGORY_META[item.category]?.icon || "📝";
+  }
+  if(!item.id){
+    item.id = String(item.time || Date.now()) + Math.random().toString(16).slice(2);
+  }
+  return item;
+}
+
+state.items = state.items.map(enrichItem);
+
+function applyStatColors(){
+  document.getElementById("todaySpent").style.color = state.colors?.today || "#1d4ed8";
+  document.getElementById("monthSpent").style.color = state.colors?.month || "#7c3aed";
+  document.getElementById("monthIncome").style.color = state.colors?.income || "#111827";
+  document.getElementById("monthSaved").style.color = state.colors?.monthSaved || "#059669";
+  document.getElementById("totalSaved").style.color = state.colors?.totalSaved || "#059669";
+}
+
 function renderColorInputs(){
   document.getElementById("todayColorInput").value = state.colors?.today || "#1d4ed8";
   document.getElementById("monthColorInput").value = state.colors?.month || "#7c3aed";
-
-  const todayEl = document.getElementById("todaySpent");
-  const monthEl = document.getElementById("monthSpent");
-  todayEl.style.color = state.colors?.today || "#1d4ed8";
-  monthEl.style.color = state.colors?.month || "#7c3aed";
+  document.getElementById("incomeColorInput").value = state.colors?.income || "#111827";
+  document.getElementById("monthSavedColorInput").value = state.colors?.monthSaved || "#059669";
+  document.getElementById("totalSavedColorInput").value = state.colors?.totalSaved || "#059669";
 }
 
 function renderTop(){
   const todaySpent = sum(todayItems());
-  const monthSpent = sum(monthItems());
-  const monthRemain = Number(state.budget || 0) - monthSpent;
-  const avgDaily = daysLeftInMonth() > 0 ? monthRemain / daysLeftInMonth() : 0;
-  const todayRemain = avgDaily - todaySpent;
+  const currentMonth = monthStr();
+  const currentMonthSpent = sum(monthItems(currentMonth));
+  const currentMonthIncome = monthIncome(currentMonth);
+  const currentMonthSaved = currentMonthIncome - currentMonthSpent;
 
   document.getElementById("todaySpent").textContent = money(todaySpent);
-  document.getElementById("monthSpent").textContent = money(monthSpent);
+  document.getElementById("monthSpent").textContent = money(currentMonthSpent);
+  document.getElementById("monthIncome").textContent = money(currentMonthIncome);
+
+  const monthSavedEl = document.getElementById("monthSaved");
+  monthSavedEl.textContent = money(currentMonthSaved);
+  monthSavedEl.className = "hero-value";
+
+  const totalSavedEl = document.getElementById("totalSaved");
+  const totalSavedValue = totalSaved();
+  totalSavedEl.textContent = money(totalSavedValue);
+  totalSavedEl.className = "hero-value";
+
+  applyStatColors();
+
+  document.getElementById("currentMonthText").value = formatMonthCN(currentMonth);
+  document.getElementById("incomeInput").value = currentMonthIncome || "";
 
   const budgetGrid = document.getElementById("budgetGrid");
   const statusBox = document.getElementById("statusBox");
@@ -643,12 +926,14 @@ function renderTop(){
   budgetEnabledEl.checked = !!state.budgetEnabled;
   document.getElementById("budgetInput").value = state.budget || "";
 
-  renderColorInputs();
-
   if(state.budgetEnabled){
     budgetGrid.style.display = "grid";
     budgetArea.style.display = "block";
     statusBox.style.display = "block";
+
+    const monthRemain = Number(state.budget || 0) - currentMonthSpent;
+    const avgDaily = daysLeftInMonth() > 0 ? monthRemain / daysLeftInMonth() : 0;
+    const todayRemain = avgDaily - todaySpent;
 
     const todayRemainEl = document.getElementById("todayRemain");
     const monthRemainEl = document.getElementById("monthRemain");
@@ -702,9 +987,9 @@ function renderTodayList(){
     const div = document.createElement("div");
     div.className = "item";
     div.innerHTML = `
-      <div>
-        <div class="item-title">${escapeHtml(item.note || "未填写备注")}</div>
-        <div class="item-sub">${new Date(item.time).toLocaleTimeString("zh-CN",{hour12:false})}</div>
+      <div class="item-left">
+        <div class="item-title"><span class="icon-badge">${item.icon || "📝"}</span>${escapeHtml(item.note || "未填写备注")}</div>
+        <div class="item-sub">${escapeHtml(item.category || "其他")} · ${new Date(item.time).toLocaleTimeString("zh-CN",{hour12:false})}</div>
       </div>
       <div class="item-amount">-${money(item.amount)}</div>
     `;
@@ -726,31 +1011,46 @@ function renderHistory(){
   const empty = document.getElementById("emptyHistoryText");
   list.innerHTML = "";
 
-  if(!state.items.length){
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+  let items = [...state.items];
+
+  if(q){
+    items = items.filter(item => {
+      return (item.note || "").toLowerCase().includes(q)
+        || (item.category || "").toLowerCase().includes(q);
+    });
+  }
+
+  if(!items.length){
     empty.style.display = "block";
     return;
   }
   empty.style.display = "none";
 
-  const grouped = groupByDate(state.items);
-  grouped.forEach(([date, items]) => {
-    const sorted = [...items].sort((a,b)=>b.time-a.time);
+  const grouped = groupByDate(items);
+  grouped.forEach(([date, arr]) => {
+    const sorted = [...arr].sort((a,b)=>b.time-a.time);
     const dayBox = document.createElement("div");
     dayBox.className = "history-day";
 
-    const total = sum(items);
-    let rows = "";
-    sorted.forEach(item => {
-      rows += `
+    const total = sum(arr);
+    const rows = sorted.map(item => {
+      return `
         <div class="history-row">
-          <div>
-            <div>${escapeHtml(item.note || "未填写备注")}</div>
-            <div class="small">${new Date(item.time).toLocaleTimeString("zh-CN",{hour12:false})}</div>
+          <div class="history-row-top">
+            <div>
+              <div><span class="icon-badge">${item.icon || "📝"}</span>${escapeHtml(item.note || "未填写备注")}</div>
+              <div class="small">${escapeHtml(item.category || "其他")} · ${new Date(item.time).toLocaleTimeString("zh-CN",{hour12:false})}</div>
+            </div>
+            <div><b>-${money(item.amount)}</b></div>
           </div>
-          <div><b>-${money(item.amount)}</b></div>
+          <div class="item-actions">
+            <button class="btn small gray" onclick="openEdit('${item.id}')">编辑</button>
+            <button class="btn small danger" onclick="deleteItem('${item.id}')">删除</button>
+          </div>
         </div>
       `;
-    });
+    }).join("");
 
     dayBox.innerHTML = `
       <div class="history-head">
@@ -834,12 +1134,138 @@ function renderChart(){
   if(state.chartRange === "7") text = "显示最近 7 天消费总额。";
   if(state.chartRange === "30") text = "显示最近 30 天消费总额。";
   if(state.chartRange === "month") text = "显示本月每天的消费总额。";
-  if(state.budgetEnabled) text += " 预算开启时，你可以对照每天控制花费。";
   tip.textContent = text;
 
   document.querySelectorAll(".range-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.range === state.chartRange);
   });
+}
+
+function getCategoryTotalsForCurrentMonth(){
+  const totals = {};
+  monthItems().forEach(item => {
+    const c = item.category || "其他";
+    totals[c] = (totals[c] || 0) + Number(item.amount || 0);
+  });
+  return Object.entries(totals).sort((a,b) => b[1]-a[1]);
+}
+
+function renderPie(){
+  const svg = document.getElementById("pieChart");
+  const legend = document.getElementById("pieLegend");
+  svg.innerHTML = "";
+  legend.innerHTML = "";
+
+  const entries = getCategoryTotalsForCurrentMonth();
+  const total = entries.reduce((a,b) => a + b[1], 0);
+
+  if(!total){
+    svg.innerHTML = `
+      <circle cx="110" cy="110" r="70" fill="#eef2f7"></circle>
+      <text x="110" y="110" text-anchor="middle" dominant-baseline="middle" fill="#6b7280" font-size="14">暂无数据</text>
+    `;
+    legend.innerHTML = `<div class="empty">本月还没有分类数据。</div>`;
+    return;
+  }
+
+  let start = 0;
+  const r = 70;
+  const cx = 110;
+  const cy = 110;
+
+  entries.forEach(([category, value]) => {
+    const color = CATEGORY_META[category]?.color || "#6b7280";
+    const fraction = value / total;
+    const end = start + fraction;
+
+    const x1 = cx + r * Math.cos(2 * Math.PI * start - Math.PI / 2);
+    const y1 = cy + r * Math.sin(2 * Math.PI * start - Math.PI / 2);
+    const x2 = cx + r * Math.cos(2 * Math.PI * end - Math.PI / 2);
+    const y2 = cy + r * Math.sin(2 * Math.PI * end - Math.PI / 2);
+    const largeArc = fraction > 0.5 ? 1 : 0;
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`);
+    path.setAttribute("fill", color);
+    svg.appendChild(path);
+
+    start = end;
+  });
+
+  const hole = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  hole.setAttribute("cx", cx);
+  hole.setAttribute("cy", cy);
+  hole.setAttribute("r", 38);
+  hole.setAttribute("fill", "#fff");
+  svg.appendChild(hole);
+
+  const text1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text1.setAttribute("x", cx);
+  text1.setAttribute("y", 102);
+  text1.setAttribute("text-anchor", "middle");
+  text1.setAttribute("fill", "#6b7280");
+  text1.setAttribute("font-size", "12");
+  text1.textContent = "本月分类";
+  svg.appendChild(text1);
+
+  const text2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text2.setAttribute("x", cx);
+  text2.setAttribute("y", 122);
+  text2.setAttribute("text-anchor", "middle");
+  text2.setAttribute("fill", "#111827");
+  text2.setAttribute("font-size", "16");
+  text2.setAttribute("font-weight", "800");
+  text2.textContent = money(total);
+  svg.appendChild(text2);
+
+  entries.forEach(([category, value]) => {
+    const percent = ((value / total) * 100).toFixed(1);
+    const color = CATEGORY_META[category]?.color || "#6b7280";
+    const icon = CATEGORY_META[category]?.icon || "📝";
+
+    const row = document.createElement("div");
+    row.className = "legend-row";
+    row.innerHTML = `
+      <div class="legend-left">
+        <span>${icon}</span>
+        <span>${category}</span>
+      </div>
+      <div style="text-align:right">
+        <div>${money(value)}</div>
+        <div class="small" style="color:${color}">${percent}%</div>
+      </div>
+    `;
+    legend.appendChild(row);
+  });
+}
+
+function renderSummary(){
+  const box = document.getElementById("summaryBox");
+  const currentMonth = monthStr();
+  const items = monthItems(currentMonth);
+  const spent = sum(items);
+  const income = monthIncome(currentMonth);
+  const saved = income - spent;
+
+  const categoryTotals = getCategoryTotalsForCurrentMonth();
+  const topCategory = categoryTotals[0];
+  const dailyMap = {};
+  items.forEach(item => {
+    dailyMap[item.date] = (dailyMap[item.date] || 0) + Number(item.amount || 0);
+  });
+  const topDay = Object.entries(dailyMap).sort((a,b)=>b[1]-a[1])[0];
+
+  box.innerHTML = `
+    <div><b>${formatMonthCN(currentMonth)}</b> 总消费：${money(spent)}</div>
+    <div>本月收入：${money(income)}</div>
+    <div>本月已存：<b style="color:${saved>=0 ? '#059669' : '#dc2626'}">${money(saved)}</b></div>
+    <div>总收入：${money(sumIncomes())}</div>
+    <div>总支出：${money(totalExpense())}</div>
+    <div>总已存：<b style="color:${totalSaved()>=0 ? '#059669' : '#dc2626'}">${money(totalSaved())}</b></div>
+    <div>${topCategory ? `本月花费最多的分类是 ${CATEGORY_META[topCategory[0]]?.icon || "📝"} ${topCategory[0]}，共 ${money(topCategory[1])}。` : "本月还没有分类消费记录。"}</div>
+    <div>${topDay ? `本月消费最高的一天是 ${formatDateCN(topDay[0])}，花了 ${money(topDay[1])}。` : "本月还没有消费记录。"}</div>
+    <div>本月记录数：${items.length} 笔。</div>
+  `;
 }
 
 function renderSettings(){
@@ -860,15 +1286,30 @@ function renderTabs(){
   });
 }
 
+function renderEditCategoryOptions(){
+  const select = document.getElementById("editCategoryInput");
+  select.innerHTML = "";
+  Object.keys(CATEGORY_META).forEach(name => {
+    const op = document.createElement("option");
+    op.value = name;
+    op.textContent = `${CATEGORY_META[name].icon} ${name}`;
+    select.appendChild(op);
+  });
+}
+
 function render(){
   renderDateLine();
   renderTop();
+  renderColorInputs();
   renderNoteMemory();
   renderTodayList();
   renderHistory();
   renderChart();
+  renderPie();
+  renderSummary();
   renderSettings();
   renderTabs();
+  renderEditCategoryOptions();
 }
 
 function addItem(){
@@ -883,11 +1324,17 @@ function addItem(){
     return;
   }
 
+  const category = detectCategory(note);
+  const icon = CATEGORY_META[category]?.icon || "📝";
+
   state.items.push({
+    id: String(Date.now()) + Math.random().toString(16).slice(2),
     amount: Number(amount.toFixed(2)),
     note,
     date: todayStr(),
-    time: Date.now()
+    time: Date.now(),
+    category,
+    icon
   });
 
   updateNoteMemory(note);
@@ -905,13 +1352,10 @@ function undoLast(){
     alert("今天没有可撤销的记录");
     return;
   }
-  const lastTime = items[0].time;
-  const idx = state.items.findIndex(i => i.time === lastTime);
-  if(idx > -1){
-    state.items.splice(idx,1);
-    saveState();
-    render();
-  }
+  const lastId = items[0].id;
+  state.items = state.items.filter(i => i.id !== lastId);
+  saveState();
+  render();
 }
 
 function saveBudget(){
@@ -925,22 +1369,41 @@ function saveBudget(){
   render();
 }
 
+function saveIncome(){
+  const currentMonth = monthStr();
+  const val = Number(document.getElementById("incomeInput").value || 0);
+  if(val < 0){
+    alert("收入不对");
+    return;
+  }
+  state.incomes[currentMonth] = val;
+  saveState();
+  render();
+}
+
 function saveColors(){
   state.colors = {
     today: document.getElementById("todayColorInput").value || "#1d4ed8",
-    month: document.getElementById("monthColorInput").value || "#7c3aed"
+    month: document.getElementById("monthColorInput").value || "#7c3aed",
+    income: document.getElementById("incomeColorInput").value || "#111827",
+    monthSaved: document.getElementById("monthSavedColorInput").value || "#059669",
+    totalSaved: document.getElementById("totalSavedColorInput").value || "#059669"
   };
   saveState();
+  applyStatColors();
   renderColorInputs();
 }
 
 function resetColors(){
   state.colors = {
-    today: "#1d4ed8",
-    month: "#7c3aed"
+    today:"#1d4ed8",
+    month:"#7c3aed",
+    income:"#111827",
+    monthSaved:"#059669",
+    totalSaved:"#059669"
   };
   saveState();
-  renderColorInputs();
+  render();
 }
 
 function clearMonth(){
@@ -961,9 +1424,64 @@ function exportData(){
   URL.revokeObjectURL(url);
 }
 
+function openEdit(id){
+  const item = state.items.find(i => i.id === id);
+  if(!item) return;
+  currentEditId = id;
+  document.getElementById("editAmountInput").value = item.amount;
+  document.getElementById("editNoteInput").value = item.note || "";
+  document.getElementById("editCategoryInput").value = item.category || "其他";
+  document.getElementById("editModalMask").classList.add("show");
+}
+
+function closeEdit(){
+  currentEditId = null;
+  document.getElementById("editModalMask").classList.remove("show");
+}
+
+function saveEdit(){
+  if(!currentEditId) return;
+  const item = state.items.find(i => i.id === currentEditId);
+  if(!item) return;
+
+  const amount = Number(document.getElementById("editAmountInput").value || 0);
+  const note = document.getElementById("editNoteInput").value.trim();
+  const category = document.getElementById("editCategoryInput").value;
+
+  if(!amount || amount <= 0){
+    alert("金额不对");
+    return;
+  }
+
+  item.amount = Number(amount.toFixed(2));
+  item.note = note;
+  item.category = category;
+  item.icon = CATEGORY_META[category]?.icon || "📝";
+
+  updateNoteMemory(note);
+  saveState();
+  closeEdit();
+  render();
+}
+
+function deleteItem(id){
+  const ok = confirm("确定删除这条记录吗？");
+  if(!ok) return;
+  state.items = state.items.filter(i => i.id !== id);
+  saveState();
+  render();
+  if(currentEditId === id) closeEdit();
+}
+
+function deleteFromModal(){
+  if(!currentEditId) return;
+  deleteItem(currentEditId);
+}
+
 document.getElementById("addBtn").onclick = addItem;
 document.getElementById("undoBtn").onclick = undoLast;
 document.getElementById("saveBudgetBtn").onclick = saveBudget;
+document.getElementById("saveIncomeBtn").onclick = saveIncome;
 document.getElementById("saveColorsBtn").onclick = saveColors;
 document.getElementById("resetColorsBtn").onclick = resetColors;
 document.getElementById("clearMonthBtn").onclick = clearMonth;
@@ -987,6 +1505,7 @@ document.getElementById("amountInput").addEventListener("keydown", e => {
 document.getElementById("noteInput").addEventListener("keydown", e => {
   if(e.key === "Enter") addItem();
 });
+document.getElementById("searchInput").addEventListener("input", renderHistory);
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.onclick = () => {
@@ -1004,7 +1523,16 @@ document.querySelectorAll(".range-btn").forEach(btn => {
   };
 });
 
+document.getElementById("saveEditBtn").onclick = saveEdit;
+document.getElementById("cancelEditBtn").onclick = closeEdit;
+document.getElementById("deleteEditBtn").onclick = deleteFromModal;
+document.getElementById("editModalMask").addEventListener("click", (e) => {
+  if(e.target.id === "editModalMask") closeEdit();
+});
+
 render();
+window.openEdit = openEdit;
+window.deleteItem = deleteItem;
 </script>
 </body>
 </html>
