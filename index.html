@@ -207,6 +207,11 @@ input[readonly]{
   font-size:13px;
   cursor:pointer;
 }
+.note-chip.deleting{
+  background:#fee2e2;
+  border-color:#fca5a5;
+  color:#991b1b;
+}
 .note-tip{
   margin-top:8px;
   font-size:12px;
@@ -448,6 +453,34 @@ input[readonly]{
   width:min(560px,100%);
   padding:16px;
   box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+
+.confirm-modal{
+  width:min(360px,92vw);
+  padding:18px;
+}
+.confirm-text{
+  font-size:16px;
+  line-height:1.7;
+  margin:6px 0 16px;
+  text-align:center;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.confirm-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.confirm-actions .btn{
+  width:100%;
+  padding:14px 0;
+  font-size:18px;
+}
+.no-select{
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
 }
 
 /* 折叠 */
@@ -935,6 +968,17 @@ input[readonly]{
   </div>
 </div>
 
+<div id="confirmMask" class="modal-mask">
+  <div class="modal confirm-modal">
+    <div class="section-title no-select" id="confirmTitle" style="margin-bottom:8px">删除备注</div>
+    <div id="confirmText" class="confirm-text no-select"></div>
+    <div class="confirm-actions">
+      <button class="btn danger no-select" id="confirmYesBtn">是</button>
+      <button class="btn gray no-select" id="confirmNoBtn">否</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const KEY = "daily_spend_v5";
 
@@ -994,10 +1038,45 @@ let state = {
 state.items = Array.isArray(state.items) ? state.items : [];
 state.noteMemory = Array.isArray(state.noteMemory) ? state.noteMemory : [];
 
+state.noteMemory = state.noteMemory.map(item => {
+  if(typeof item === "string"){
+    return {
+      text: item,
+      count: 1,
+      lastTime: Date.now()
+    };
+  }
+  return {
+    text: item.text || "",
+    count: Number(item.count || 1),
+    lastTime: Number(item.lastTime || Date.now())
+  };
+}).filter(item => item.text);
 let currentEditId = null;
+let confirmCallback = null;
 
 function saveState(){
   localStorage.setItem(KEY, JSON.stringify(state));
+}
+
+function openConfirm(title, text, onYes){
+  const titleEl = document.getElementById("confirmTitle");
+  const textEl = document.getElementById("confirmText");
+  if(titleEl) titleEl.textContent = title || "确认操作";
+  if(textEl) textEl.textContent = text || "";
+  confirmCallback = onYes || null;
+  document.getElementById("confirmMask").classList.add("show");
+}
+
+function closeConfirm(){
+  confirmCallback = null;
+  document.getElementById("confirmMask").classList.remove("show");
+}
+
+function handleConfirmYes(){
+  const cb = confirmCallback;
+  closeConfirm();
+  if(cb) cb();
 }
 
 function now(){
@@ -1192,9 +1271,27 @@ function totalSaved(){
 function updateNoteMemory(note){
   const text = (note || "").trim();
   if(!text) return;
-  state.noteMemory = state.noteMemory.filter(n => n !== text);
-  state.noteMemory.unshift(text);
-  state.noteMemory = state.noteMemory.slice(0, 12);
+
+  const nowTime = Date.now();
+  const found = state.noteMemory.find(item => item.text === text);
+
+  if(found){
+    found.count += 1;
+    found.lastTime = nowTime;
+  }else{
+    state.noteMemory.push({
+      text,
+      count: 1,
+      lastTime: nowTime
+    });
+  }
+
+  state.noteMemory.sort((a, b) => {
+    if(b.count !== a.count) return b.count - a.count;
+    return b.lastTime - a.lastTime;
+  });
+
+  state.noteMemory = state.noteMemory.slice(0, 10);
 }
 
 function escapeHtml(str){
@@ -1383,13 +1480,61 @@ function renderTop(){
 function renderNoteMemory(){
   const box = document.getElementById("noteMemory");
   box.innerHTML = "";
-  state.noteMemory.forEach(note => {
+
+  state.noteMemory.forEach(item => {
     const btn = document.createElement("button");
     btn.className = "note-chip";
-    btn.textContent = note;
-    btn.onclick = () => {
-      document.getElementById("noteInput").value = note;
+    btn.textContent = item.text;
+
+    let pressTimer = null;
+    let longPressed = false;
+
+    const startPress = () => {
+      longPressed = false;
+      btn.classList.add("deleting");
+
+      pressTimer = setTimeout(() => {
+        longPressed = true;
+        openConfirm(
+          "删除备注",
+          `是否删除备注“${item.text}”？`,
+          () => {
+            state.noteMemory = state.noteMemory.filter(n => n.text !== item.text);
+            saveState();
+            renderNoteMemory();
+          }
+        );
+        btn.classList.remove("deleting");
+      }, 600);
     };
+
+    const cancelPress = () => {
+      clearTimeout(pressTimer);
+      btn.classList.remove("deleting");
+    };
+
+    btn.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      startPress();
+    }, { passive:false });
+
+    btn.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      cancelPress();
+    }, { passive:false });
+
+    btn.addEventListener("touchcancel", cancelPress);
+    btn.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    btn.addEventListener("mousedown", startPress);
+    btn.addEventListener("mouseup", cancelPress);
+    btn.addEventListener("mouseleave", cancelPress);
+
+    btn.onclick = () => {
+      if(longPressed) return;
+      document.getElementById("noteInput").value = item.text;
+    };
+
     box.appendChild(btn);
   });
 }
@@ -2355,6 +2500,12 @@ window.toggleHistoryDate = toggleHistoryDate;
 window.toggleSummaryMonth = toggleSummaryMonth;
 window.toggleSummaryDate = toggleSummaryDate;
 window.toggleYearSummaryMonth = toggleYearSummaryMonth;
+
+document.getElementById("confirmYesBtn").onclick = handleConfirmYes;
+document.getElementById("confirmNoBtn").onclick = closeConfirm;
+document.getElementById("confirmMask").addEventListener("click", (e) => {
+  if(e.target.id === "confirmMask") closeConfirm();
+});
 
 render();
 </script>
