@@ -241,6 +241,21 @@ input[readonly]{
   font-size:12px;
   color:var(--sub);
 }
+.add-success-tip{
+  display:none;
+  margin-top:12px;
+  margin-bottom:2px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:#ecfdf5;
+  color:#065f46;
+  font-size:14px;
+  font-weight:800;
+  text-align:center;
+}
+.add-success-tip.show{
+  display:block;
+}
 .setting-box{
   display:none;
   margin-top:12px;
@@ -775,10 +790,12 @@ input[readonly]{
     <div class="quick-notes" id="noteMemory"></div>
     <div class="note-tip">备注会自动记住。分类和图标会根据备注自动识别。</div>
 
-    <div class="footer-actions">
-      <button class="btn primary big" id="addBtn">记账</button>
-      <button class="btn gray" id="undoBtn">撤销上一笔</button>
-    </div>
+    <div id="addSuccessTip" class="add-success-tip">记账成功！</div>
+
+<div class="footer-actions">
+  <button class="btn primary big" id="addBtn">记账</button>
+  <button class="btn gray" id="undoBtn">撤销上一笔</button>
+</div>
 
     <div class="row" style="margin-top:12px">
       <div>
@@ -1510,7 +1527,19 @@ function renderNoteClearBtn(){
   if(!noteInput || !clearBtn) return;
   clearBtn.style.display = noteInput.value.trim() ? "flex" : "none";
 }
+let addSuccessTimer = null;
 
+function showAddSuccessTip(){
+  const tip = document.getElementById("addSuccessTip");
+  if(!tip) return;
+
+  clearTimeout(addSuccessTimer);
+  tip.classList.add("show");
+
+  addSuccessTimer = setTimeout(() => {
+    tip.classList.remove("show");
+  }, 1500);
+}
 function renderNoteMemory(){
   const box = document.getElementById("noteMemory");
   box.innerHTML = "";
@@ -2339,7 +2368,8 @@ function addItem(){
   amountInput.value = "";
   noteInput.value = "";
   resetMainDateSelectorsToToday();
-  render();
+render();
+showAddSuccessTip();
 }
 
 function undoLast(){
