@@ -1485,27 +1485,39 @@ function renderNoteMemory(){
     const btn = document.createElement("button");
     btn.className = "note-chip";
     btn.textContent = item.text;
+    btn.type = "button";
 
     let pressTimer = null;
     let longPressed = false;
 
-    const startPress = () => {
+    const fillNote = () => {
+      document.getElementById("noteInput").value = item.text;
+        };
+
+    const startPress = (e) => {
+      if(e) e.preventDefault();
       longPressed = false;
       btn.classList.add("deleting");
 
       pressTimer = setTimeout(() => {
         longPressed = true;
-        openConfirm(
-          "删除备注",
-          `是否删除备注“${item.text}”？`,
-          () => {
-            state.noteMemory = state.noteMemory.filter(n => n.text !== item.text);
-            saveState();
-            renderNoteMemory();
-          }
-        );
+        openConfirm("删除备注", `是否删除备注“${item.text}”？`, () => {
+          state.noteMemory = state.noteMemory.filter(n => n.text !== item.text);
+          saveState();
+          renderNoteMemory();
+        });
         btn.classList.remove("deleting");
       }, 600);
+    };
+
+    const endPress = (e) => {
+      if(e) e.preventDefault();
+      clearTimeout(pressTimer);
+      btn.classList.remove("deleting");
+
+      if(!longPressed){
+        fillNote();
+      }
     };
 
     const cancelPress = () => {
@@ -1513,27 +1525,25 @@ function renderNoteMemory(){
       btn.classList.remove("deleting");
     };
 
-    btn.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      startPress();
-    }, { passive:false });
-
-    btn.addEventListener("touchend", (e) => {
-      e.preventDefault();
-      cancelPress();
-    }, { passive:false });
-
+    btn.addEventListener("touchstart", startPress, { passive:false });
+    btn.addEventListener("touchend", endPress, { passive:false });
     btn.addEventListener("touchcancel", cancelPress);
-    btn.addEventListener("contextmenu", (e) => e.preventDefault());
 
     btn.addEventListener("mousedown", startPress);
-    btn.addEventListener("mouseup", cancelPress);
+    btn.addEventListener("mouseup", (e) => {
+      if(longPressed){
+        cancelPress();
+        return;
+      }
+      endPress(e);
+    });
     btn.addEventListener("mouseleave", cancelPress);
 
-    btn.onclick = () => {
-      if(longPressed) return;
-      document.getElementById("noteInput").value = item.text;
-    };
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+    });
+
+    btn.addEventListener("contextmenu", (e) => e.preventDefault());
 
     box.appendChild(btn);
   });
