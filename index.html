@@ -154,6 +154,30 @@ input[type="color"]{
 input[readonly]{
   background:#f8fafc;
 }
+.input-clear-wrap{
+  position:relative;
+}
+.input-clear-wrap input{
+  padding-right:52px;
+}
+.clear-input-btn{
+  position:absolute;
+  right:8px;
+  top:8px;
+  width:32px;
+  height:32px;
+  border:0;
+  border-radius:999px;
+  background:#e5e7eb;
+  color:#374151;
+  font-size:22px;
+  line-height:1;
+  padding:0;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
 .row{
   display:flex;
   gap:10px;
@@ -741,7 +765,10 @@ input[readonly]{
       </div>
       <div>
         <label for="noteInput">备注</label>
-        <input id="noteInput" type="text" placeholder="例如：奶茶、午饭、衣服">
+        <div class="input-clear-wrap">
+          <input id="noteInput" type="text" placeholder="例如：奶茶、午饭、衣服">
+          <button type="button" class="clear-input-btn" id="clearNoteBtn" style="display:none">×</button>
+        </div>
       </div>
     </div>
 
@@ -1477,6 +1504,13 @@ function renderTop(){
   }
 }
 
+function renderNoteClearBtn(){
+  const noteInput = document.getElementById("noteInput");
+  const clearBtn = document.getElementById("clearNoteBtn");
+  if(!noteInput || !clearBtn) return;
+  clearBtn.style.display = noteInput.value.trim() ? "flex" : "none";
+}
+
 function renderNoteMemory(){
   const box = document.getElementById("noteMemory");
   box.innerHTML = "";
@@ -1492,7 +1526,8 @@ function renderNoteMemory(){
 
     const fillNote = () => {
       document.getElementById("noteInput").value = item.text;
-        };
+      renderNoteClearBtn();
+    };
 
     const startPress = (e) => {
       if(e) e.preventDefault();
@@ -1507,7 +1542,7 @@ function renderNoteMemory(){
           renderNoteMemory();
         });
         btn.classList.remove("deleting");
-      }, 600);
+      }, 1000);
     };
 
     const endPress = (e) => {
@@ -2260,6 +2295,7 @@ function render(){
   renderColorInputs();
   renderDateSelectors();
   renderNoteMemory();
+  renderNoteClearBtn();
   renderTodayList();
   renderHistory();
   renderChart();
@@ -2479,6 +2515,15 @@ document.getElementById("amountInput").addEventListener("keydown", e => {
 document.getElementById("noteInput").addEventListener("keydown", e => {
   if(e.key === "Enter") addItem();
 });
+document.getElementById("noteInput").addEventListener("input", renderNoteClearBtn);
+document.getElementById("noteInput").addEventListener("focus", renderNoteClearBtn);
+document.getElementById("noteInput").addEventListener("click", renderNoteClearBtn);
+document.getElementById("noteInput").addEventListener("blur", renderNoteClearBtn);
+document.getElementById("clearNoteBtn").onclick = () => {
+  const noteInput = document.getElementById("noteInput");
+  noteInput.value = "";
+  renderNoteClearBtn();
+};
 document.getElementById("searchInput").addEventListener("input", renderHistory);
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
