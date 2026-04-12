@@ -970,8 +970,10 @@ input[readonly]{
 
       <div class="footer-actions">
         <button class="btn gray" id="exportBtn">导出数据</button>
+        <button class="btn gray" id="importBtn">导入数据</button>
         <button class="btn gray" id="clearMonthBtn">清空本月记录</button>
       </div>
+      <input id="importFileInput" type="file" accept="application/json,.json" style="display:none">
     </div>
   </div>
 </div>
@@ -2453,6 +2455,76 @@ function exportData(){
   URL.revokeObjectURL(url);
 }
 
+function normalizeImportedState(raw){
+  const base = {
+    ...DEFAULT_STATE,
+    ...raw,
+    incomes: { ...(DEFAULT_STATE.incomes||{}), ...(raw?.incomes||{}) },
+    colors: { ...(DEFAULT_STATE.colors||{}), ...(raw?.colors||{}) },
+    historyExpandedDates: { ...(DEFAULT_STATE.historyExpandedDates||{}), ...(raw?.historyExpandedDates||{}) },
+    summaryExpandedMonths: { ...(DEFAULT_STATE.summaryExpandedMonths||{}), ...(raw?.summaryExpandedMonths||{}) },
+    summaryExpandedDates: { ...(DEFAULT_STATE.summaryExpandedDates||{}), ...(raw?.summaryExpandedDates||{}) },
+    yearSummaryExpandedMonths: { ...(DEFAULT_STATE.yearSummaryExpandedMonths||{}), ...(raw?.yearSummaryExpandedMonths||{}) }
+  };
+
+  base.items = Array.isArray(base.items) ? base.items : [];
+  base.noteMemory = Array.isArray(base.noteMemory) ? base.noteMemory : [];
+
+  base.noteMemory = base.noteMemory.map(item => {
+    if(typeof item === "string"){
+      return {
+        text: item,
+        count: 1,
+        lastTime: Date.now()
+      };
+    }
+    return {
+      text: item?.text || "",
+      count: Number(item?.count || 1),
+      lastTime: Number(item?.lastTime || Date.now())
+    };
+  }).filter(item => item.text);
+
+  base.items = base.items.map(enrichItem);
+  return base;
+}
+
+function importDataFromFile(file){
+  if(!file){
+    alert("没有选择文件");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const raw = JSON.parse(reader.result);
+      if(!raw || typeof raw !== "object"){
+        throw new Error("格式不对");
+      }
+
+      const ok = confirm("导入会覆盖当前页面里的数据，是否继续？");
+      if(!ok) return;
+
+      state = normalizeImportedState(raw);
+      saveState();
+      render();
+      alert("导入成功");
+    }catch(e){
+      alert("导入失败，请确认选择的是导出的 JSON 数据文件");
+    }finally{
+      const input = document.getElementById("importFileInput");
+      if(input) input.value = "";
+    }
+  };
+  reader.onerror = () => {
+    alert("读取文件失败");
+    const input = document.getElementById("importFileInput");
+    if(input) input.value = "";
+  };
+  reader.readAsText(file, "utf-8");
+}
+
 function openEdit(id){
   const item = state.items.find(i => i.id === id);
   if(!item) return;
@@ -2518,6 +2590,12 @@ document.getElementById("saveColorsBtn").onclick = saveColors;
 document.getElementById("resetColorsBtn").onclick = resetColors;
 document.getElementById("clearMonthBtn").onclick = clearMonth;
 document.getElementById("exportBtn").onclick = exportData;
+document.getElementById("importBtn").onclick = () => {
+  document.getElementById("importFileInput").click();
+};
+document.getElementById("importFileInput").addEventListener("change", (e) => {
+  importDataFromFile(e.target.files && e.target.files[0]);
+});
 
 document.getElementById("toggleSettingsBtn").onclick = () => {
   state.settingsOpen = !state.settingsOpen;
