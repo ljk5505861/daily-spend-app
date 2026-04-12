@@ -234,6 +234,7 @@ input[readonly]{
   padding:9px 13px;
   font-size:13px;
   cursor:pointer;
+  touch-action:pan-y;
 }
 .note-chip.deleting{
   background:#fee2e2;
@@ -1611,19 +1612,21 @@ function renderNoteMemory(){
 
     let pressTimer = null;
     let longPressed = false;
+    let touchMoved = false;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let ignoreMouseUntil = 0;
 
     const fillNote = () => {
       document.getElementById("noteInput").value = item.text;
       renderNoteClearBtn();
     };
 
-    const startPress = (e) => {
-      if(e) e.preventDefault();
-      longPressed = false;
-      btn.classList.add("deleting");
-
+    const beginLongPressTimer = () => {
+      clearTimeout(pressTimer);
       pressTimer = setTimeout(() => {
         longPressed = true;
+        btn.classList.add("deleting");
         openConfirm("删除备注", `是否删除备注“${item.text}”？`, () => {
           state.noteMemory = state.noteMemory.filter(n => n.text !== item.text);
           saveState();
@@ -1633,34 +1636,63 @@ function renderNoteMemory(){
       }, 1000);
     };
 
-    const endPress = (e) => {
-      if(e) e.preventDefault();
+    const clearPressState = () => {
       clearTimeout(pressTimer);
       btn.classList.remove("deleting");
+    };
 
+    btn.addEventListener("touchstart", (e) => {
+      const t = e.touches && e.touches[0];
+      if(!t) return;
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      touchMoved = false;
+      longPressed = false;
+      beginLongPressTimer();
+    }, { passive:true });
+
+    btn.addEventListener("touchmove", (e) => {
+      const t = e.touches && e.touches[0];
+      if(!t) return;
+      const dx = Math.abs(t.clientX - touchStartX);
+      const dy = Math.abs(t.clientY - touchStartY);
+      if(dx > 8 || dy > 8){
+        touchMoved = true;
+        clearPressState();
+      }
+    }, { passive:true });
+
+    btn.addEventListener("touchend", () => {
+      ignoreMouseUntil = Date.now() + 700;
+      clearPressState();
+
+      if(touchMoved || longPressed){
+        return;
+      }
+
+      fillNote();
+    }, { passive:true });
+
+    btn.addEventListener("touchcancel", () => {
+      touchMoved = true;
+      clearPressState();
+    }, { passive:true });
+
+    btn.addEventListener("mousedown", () => {
+      if(Date.now() < ignoreMouseUntil) return;
+      longPressed = false;
+      beginLongPressTimer();
+    });
+
+    btn.addEventListener("mouseup", () => {
+      if(Date.now() < ignoreMouseUntil) return;
+      clearPressState();
       if(!longPressed){
         fillNote();
       }
-    };
-
-    const cancelPress = () => {
-      clearTimeout(pressTimer);
-      btn.classList.remove("deleting");
-    };
-
-    btn.addEventListener("touchstart", startPress, { passive:false });
-    btn.addEventListener("touchend", endPress, { passive:false });
-    btn.addEventListener("touchcancel", cancelPress);
-
-    btn.addEventListener("mousedown", startPress);
-    btn.addEventListener("mouseup", (e) => {
-      if(longPressed){
-        cancelPress();
-        return;
-      }
-      endPress(e);
     });
-    btn.addEventListener("mouseleave", cancelPress);
+
+    btn.addEventListener("mouseleave", clearPressState);
 
     btn.addEventListener("click", (e) => {
       e.preventDefault();
