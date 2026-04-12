@@ -1,5 +1,4 @@
 <!doctype html>
-<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -708,6 +707,46 @@ input[readonly]{
   text-align:right;
 }
 
+
+.paste-import-mask{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:1100;
+}
+.paste-import-mask.show{ display:flex; }
+.paste-import-modal{
+  background:#fff;
+  border-radius:20px;
+  width:min(680px,100%);
+  padding:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+.paste-import-textarea{
+  width:100%;
+  min-height:260px;
+  border:1px solid #d1d5db;
+  border-radius:14px;
+  padding:14px;
+  font:inherit;
+  resize:vertical;
+  outline:none;
+}
+.paste-import-textarea:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(37,99,235,.12);
+}
+.paste-import-tip{
+  margin-top:10px;
+  font-size:13px;
+  color:var(--sub);
+  line-height:1.7;
+}
+
 @media (max-width:700px){
   .pie-grid{ grid-template-columns:1fr; }
   .month-stats,.year-stats{ grid-template-columns:1fr; }
@@ -973,9 +1012,9 @@ input[readonly]{
       <div class="footer-actions">
         <button class="btn gray" id="exportBtn">导出数据</button>
         <button class="btn gray" id="importBtn">导入数据</button>
+        <button class="btn gray" id="pasteImportBtn">粘贴导入</button>
         <button class="btn gray" id="clearMonthBtn">清空本月记录</button>
       </div>
-      <input id="importFileInput" type="file" accept="application/json,.json" style="display:none">
     </div>
   </div>
 </div>
@@ -1026,6 +1065,19 @@ input[readonly]{
     <div class="confirm-actions">
       <button class="btn danger no-select" id="confirmYesBtn">是</button>
       <button class="btn gray no-select" id="confirmNoBtn">否</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="pasteImportMask" class="paste-import-mask">
+  <div class="paste-import-modal">
+    <div class="section-title">粘贴导入数据</div>
+    <textarea id="pasteImportTextarea" class="paste-import-textarea" placeholder="把刚才“显示”出来的整段 json 数据粘贴到这里"></textarea>
+    <div class="paste-import-tip">从旧版本点“导出数据”后，弹窗里选“显示”，进入代码页，全选复制，再粘贴到这里。</div>
+    <div class="footer-actions">
+      <button class="btn primary" id="confirmPasteImportBtn">确认导入</button>
+      <button class="btn gray" id="cancelPasteImportBtn">取消</button>
     </div>
   </div>
 </div>
@@ -2457,76 +2509,6 @@ function exportData(){
   URL.revokeObjectURL(url);
 }
 
-function normalizeImportedState(raw){
-  const base = {
-    ...DEFAULT_STATE,
-    ...raw,
-    incomes: { ...(DEFAULT_STATE.incomes||{}), ...(raw?.incomes||{}) },
-    colors: { ...(DEFAULT_STATE.colors||{}), ...(raw?.colors||{}) },
-    historyExpandedDates: { ...(DEFAULT_STATE.historyExpandedDates||{}), ...(raw?.historyExpandedDates||{}) },
-    summaryExpandedMonths: { ...(DEFAULT_STATE.summaryExpandedMonths||{}), ...(raw?.summaryExpandedMonths||{}) },
-    summaryExpandedDates: { ...(DEFAULT_STATE.summaryExpandedDates||{}), ...(raw?.summaryExpandedDates||{}) },
-    yearSummaryExpandedMonths: { ...(DEFAULT_STATE.yearSummaryExpandedMonths||{}), ...(raw?.yearSummaryExpandedMonths||{}) }
-  };
-
-  base.items = Array.isArray(base.items) ? base.items : [];
-  base.noteMemory = Array.isArray(base.noteMemory) ? base.noteMemory : [];
-
-  base.noteMemory = base.noteMemory.map(item => {
-    if(typeof item === "string"){
-      return {
-        text: item,
-        count: 1,
-        lastTime: Date.now()
-      };
-    }
-    return {
-      text: item?.text || "",
-      count: Number(item?.count || 1),
-      lastTime: Number(item?.lastTime || Date.now())
-    };
-  }).filter(item => item.text);
-
-  base.items = base.items.map(enrichItem);
-  return base;
-}
-
-function importDataFromFile(file){
-  if(!file){
-    alert("没有选择文件");
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    try{
-      const raw = JSON.parse(reader.result);
-      if(!raw || typeof raw !== "object"){
-        throw new Error("格式不对");
-      }
-
-      const ok = confirm("导入会覆盖当前页面里的数据，是否继续？");
-      if(!ok) return;
-
-      state = normalizeImportedState(raw);
-      saveState();
-      render();
-      alert("导入成功");
-    }catch(e){
-      alert("导入失败，请确认选择的是导出的 JSON 数据文件");
-    }finally{
-      const input = document.getElementById("importFileInput");
-      if(input) input.value = "";
-    }
-  };
-  reader.onerror = () => {
-    alert("读取文件失败");
-    const input = document.getElementById("importFileInput");
-    if(input) input.value = "";
-  };
-  reader.readAsText(file, "utf-8");
-}
-
 function openEdit(id){
   const item = state.items.find(i => i.id === id);
   if(!item) return;
@@ -2584,6 +2566,107 @@ function deleteFromModal(){
   deleteItem(currentEditId);
 }
 
+
+function importDataFromObject(data){
+  if(!data || typeof data !== "object"){
+    alert("导入数据格式不对");
+    return;
+  }
+
+  const merged = {
+    ...DEFAULT_STATE,
+    ...data,
+    incomes: { ...(DEFAULT_STATE.incomes||{}), ...(data.incomes||{}) },
+    colors: { ...(DEFAULT_STATE.colors||{}), ...(data.colors||{}) },
+    historyExpandedDates: { ...(DEFAULT_STATE.historyExpandedDates||{}), ...(data.historyExpandedDates||{}) },
+    summaryExpandedMonths: { ...(DEFAULT_STATE.summaryExpandedMonths||{}), ...(data.summaryExpandedMonths||{}) },
+    summaryExpandedDates: { ...(DEFAULT_STATE.summaryExpandedDates||{}), ...(data.summaryExpandedDates||{}) },
+    yearSummaryExpandedMonths: { ...(DEFAULT_STATE.yearSummaryExpandedMonths||{}), ...(data.yearSummaryExpandedMonths||{}) }
+  };
+
+  merged.items = Array.isArray(merged.items) ? merged.items : [];
+  merged.noteMemory = Array.isArray(merged.noteMemory) ? merged.noteMemory : [];
+
+  merged.noteMemory = merged.noteMemory.map(item => {
+    if(typeof item === "string"){
+      return {
+        text: item,
+        count: 1,
+        lastTime: Date.now()
+      };
+    }
+    return {
+      text: item.text || "",
+      count: Number(item.count || 1),
+      lastTime: Number(item.lastTime || Date.now())
+    };
+  }).filter(item => item.text);
+
+  merged.items = merged.items.map(enrichItem);
+
+  state = merged;
+  saveState();
+  closePasteImport();
+  render();
+  alert("导入成功");
+}
+
+function importDataFromFile(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(String(reader.result || ""));
+      const ok = confirm("确定用这份数据覆盖当前页面的数据吗？");
+      if(!ok) return;
+      importDataFromObject(data);
+    }catch(e){
+      alert("导入失败，文件内容不是正确的 JSON 数据");
+    }
+  };
+  reader.readAsText(file, "utf-8");
+}
+
+function openPasteImport(){
+  const mask = document.getElementById("pasteImportMask");
+  const textarea = document.getElementById("pasteImportTextarea");
+  textarea.value = "";
+  mask.classList.add("show");
+}
+
+function closePasteImport(){
+  document.getElementById("pasteImportMask").classList.remove("show");
+}
+
+function confirmPasteImport(){
+  const text = document.getElementById("pasteImportTextarea").value.trim();
+  if(!text){
+    alert("先粘贴数据");
+    return;
+  }
+
+  try{
+    const data = JSON.parse(text);
+    const ok = confirm("确定用粘贴的数据覆盖当前页面的数据吗？");
+    if(!ok) return;
+    importDataFromObject(data);
+  }catch(e){
+    alert("粘贴内容不是正确的 JSON 数据");
+  }
+}
+
+function openImportFilePicker(){
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json,application/json";
+  input.onchange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    importDataFromFile(file);
+  };
+  input.click();
+}
+
+
 document.getElementById("addBtn").onclick = addItem;
 document.getElementById("undoBtn").onclick = undoLast;
 document.getElementById("saveBudgetBtn").onclick = saveBudget;
@@ -2592,11 +2675,12 @@ document.getElementById("saveColorsBtn").onclick = saveColors;
 document.getElementById("resetColorsBtn").onclick = resetColors;
 document.getElementById("clearMonthBtn").onclick = clearMonth;
 document.getElementById("exportBtn").onclick = exportData;
-document.getElementById("importBtn").onclick = () => {
-  document.getElementById("importFileInput").click();
-};
-document.getElementById("importFileInput").addEventListener("change", (e) => {
-  importDataFromFile(e.target.files && e.target.files[0]);
+document.getElementById("importBtn").onclick = openImportFilePicker;
+document.getElementById("pasteImportBtn").onclick = openPasteImport;
+document.getElementById("confirmPasteImportBtn").onclick = confirmPasteImport;
+document.getElementById("cancelPasteImportBtn").onclick = closePasteImport;
+document.getElementById("pasteImportMask").addEventListener("click", (e) => {
+  if(e.target.id === "pasteImportMask") closePasteImport();
 });
 
 document.getElementById("toggleSettingsBtn").onclick = () => {
