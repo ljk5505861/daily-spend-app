@@ -1039,6 +1039,17 @@ input[readonly]{
           </div>
         </div>
 
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="budgetTodayColorInput">今天还能花颜色</label>
+            <input id="budgetTodayColorInput" type="color">
+          </div>
+          <div>
+            <label for="budgetRemainColorInput">本期/本月剩余颜色</label>
+            <input id="budgetRemainColorInput" type="color">
+          </div>
+        </div>
+
         <div class="footer-actions">
           <button class="btn primary" id="saveColorsBtn">保存颜色</button>
           <button class="btn gray" id="resetColorsBtn">恢复默认颜色</button>
@@ -1151,7 +1162,9 @@ const DEFAULT_STATE = {
     month:"#7c3aed",
     income:"#111827",
     monthSaved:"#059669",
-    totalSaved:"#059669"
+    totalSaved:"#059669",
+    budgetToday:"#111827",
+    budgetRemain:"#111827"
   },
   historyExpandedDates:{},
   summaryExpandedMonths:{},
@@ -1497,12 +1510,17 @@ function applyStatColors(){
   document.getElementById("monthIncome").style.color = state.colors?.income || "#111827";
   document.getElementById("monthSaved").style.color = state.colors?.monthSaved || "#059669";
   document.getElementById("totalSaved").style.color = state.colors?.totalSaved || "#059669";
+  const budgetTodayEl = document.getElementById("todayRemain");
+  const budgetRemainEl = document.getElementById("monthRemain");
+  if(budgetTodayEl) budgetTodayEl.style.color = state.colors?.budgetToday || "#111827";
+  if(budgetRemainEl) budgetRemainEl.style.color = state.colors?.budgetRemain || "#111827";
 }
 
 function applyHeroValueSize(){
   const pairGroups = [
     ["todaySpent", "monthSpent"],
-    ["monthIncome", "monthSaved"]
+    ["monthIncome", "monthSaved"],
+    ["todayRemain", "monthRemain"]
   ];
   const singleGroups = ["totalSaved"];
 
@@ -1561,6 +1579,10 @@ function renderColorInputs(){
   document.getElementById("incomeColorInput").value = state.colors?.income || "#111827";
   document.getElementById("monthSavedColorInput").value = state.colors?.monthSaved || "#059669";
   document.getElementById("totalSavedColorInput").value = state.colors?.totalSaved || "#059669";
+  const budgetTodayInput = document.getElementById("budgetTodayColorInput");
+  const budgetRemainInput = document.getElementById("budgetRemainColorInput");
+  if(budgetTodayInput) budgetTodayInput.value = state.colors?.budgetToday || "#111827";
+  if(budgetRemainInput) budgetRemainInput.value = state.colors?.budgetRemain || "#111827";
 }
 
 function getIncomeSettingMonth(){
@@ -1777,6 +1799,9 @@ function renderTop(){
     budgetArea.style.display = "none";
     statusBox.style.display = "none";
   }
+
+  applyStatColors();
+  applyHeroValueSize();
 }
 
 function renderNoteClearBtn(){
@@ -2758,11 +2783,14 @@ function saveColors(){
     month: document.getElementById("monthColorInput").value || "#7c3aed",
     income: document.getElementById("incomeColorInput").value || "#111827",
     monthSaved: document.getElementById("monthSavedColorInput").value || "#059669",
-    totalSaved: document.getElementById("totalSavedColorInput").value || "#059669"
+    totalSaved: document.getElementById("totalSavedColorInput").value || "#059669",
+    budgetToday: document.getElementById("budgetTodayColorInput").value || "#111827",
+    budgetRemain: document.getElementById("budgetRemainColorInput").value || "#111827"
   };
   saveState();
   applyStatColors();
   renderColorInputs();
+  renderTop();
 }
 
 function resetColors(){
@@ -2771,7 +2799,9 @@ function resetColors(){
     month:"#7c3aed",
     income:"#111827",
     monthSaved:"#059669",
-    totalSaved:"#059669"
+    totalSaved:"#059669",
+    budgetToday:"#111827",
+    budgetRemain:"#111827"
   };
   saveState();
   render();
