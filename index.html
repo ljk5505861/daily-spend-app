@@ -780,22 +780,22 @@ input[readonly]{
 
     <div class="hero-subgrid">
       <div class="hero-item">
-        <div class="hero-label sub">本月收入</div>
-        <div class="hero-value top-stat-value" id="monthIncome">¥0</div>
-        <div class="hero-sub">当前月份收入</div>
-      </div>
-      <div class="hero-item">
         <div class="hero-label sub">本月已存</div>
         <div class="hero-value top-stat-value" id="monthSaved">¥0</div>
         <div class="hero-sub">本月收入 - 本月支出</div>
+      </div>
+      <div class="hero-item">
+        <div class="hero-label sub">总已存</div>
+        <div class="hero-value top-stat-value" id="totalSaved">¥0</div>
+        <div class="hero-sub">总收入 - 总支出</div>
       </div>
     </div>
 
     <div class="hero-subgrid income-row">
       <div class="hero-item">
-        <div class="hero-label sub">总已存</div>
-        <div class="hero-value top-stat-value" id="totalSaved">¥0</div>
-        <div class="hero-sub">总收入 - 总支出</div>
+        <div class="hero-label sub">本月收入</div>
+        <div class="hero-value top-stat-value" id="monthIncome">¥0</div>
+        <div class="hero-sub">当前月份收入</div>
       </div>
     </div>
 
@@ -926,12 +926,8 @@ input[readonly]{
     <div class="section-title">本月收入设置</div>
     <div class="row">
       <div>
-        <label for="incomeYearInput">选择年份</label>
-        <select id="incomeYearInput"></select>
-      </div>
-      <div>
-        <label for="incomeMonthInput">选择月份</label>
-        <select id="incomeMonthInput"></select>
+        <label>当前月份</label>
+        <input id="currentMonthText" type="text" readonly>
       </div>
       <div>
         <label for="incomeInput">本月收入（元）</label>
@@ -939,7 +935,7 @@ input[readonly]{
       </div>
     </div>
     <div class="footer-actions">
-      <button class="btn primary" id="saveIncomeBtn">保存所选月份收入</button>
+      <button class="btn primary" id="saveIncomeBtn">保存本月收入</button>
     </div>
   </div>
 
@@ -966,10 +962,42 @@ input[readonly]{
       <div id="budgetSettingsArea" style="display:none;margin-top:8px">
         <div class="row">
           <div>
-            <label for="budgetInput">本月预算（元）</label>
-            <input id="budgetInput" type="number" min="0" step="1" placeholder="例如 800">
+            <label for="budgetModeInput">预算模式</label>
+            <select id="budgetModeInput">
+              <option value="monthly">本月预算</option>
+              <option value="custom">自定义区间预算</option>
+            </select>
           </div>
         </div>
+
+        <div id="monthlyBudgetArea" style="margin-top:10px">
+          <div class="row">
+            <div>
+              <label for="budgetInput">本月预算（元）</label>
+              <input id="budgetInput" type="number" min="0" step="1" placeholder="例如 800">
+            </div>
+          </div>
+        </div>
+
+        <div id="customBudgetArea" style="display:none;margin-top:10px">
+          <div class="row">
+            <div>
+              <label for="customBudgetInput">预算金额（元）</label>
+              <input id="customBudgetInput" type="number" min="0" step="1" placeholder="例如 800">
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label for="budgetStartInput">开始日期</label>
+              <input id="budgetStartInput" type="date">
+            </div>
+            <div>
+              <label for="budgetEndInput">结束日期</label>
+              <input id="budgetEndInput" type="date">
+            </div>
+          </div>
+        </div>
+
         <div class="footer-actions">
           <button class="btn primary" id="saveBudgetBtn">保存预算</button>
         </div>
@@ -1103,7 +1131,11 @@ const CATEGORY_META = {
 
 const DEFAULT_STATE = {
   budgetEnabled:false,
+  budgetMode:"monthly",
   budget:0,
+  customBudget:0,
+  budgetStartDate:"",
+  budgetEndDate:"",
   items:[],
   noteMemory:[],
   settingsOpen:false,
@@ -1121,8 +1153,7 @@ const DEFAULT_STATE = {
   summaryExpandedMonths:{},
   summaryExpandedDates:{},
   yearSummaryExpandedMonths:{},
-  yearSelected:String(new Date().getFullYear()),
-  incomeSettingMonth:""
+  yearSelected:String(new Date().getFullYear())
 };
 
 let saved = {};
@@ -1466,9 +1497,9 @@ function applyStatColors(){
 function applyHeroValueSize(){
   const pairGroups = [
     ["todaySpent", "monthSpent"],
-    ["monthIncome", "monthSaved"]
+    ["monthSaved", "totalSaved"]
   ];
-  const singleGroups = ["totalSaved"];
+  const singleGroups = ["monthIncome"];
 
   function getSizeClass(text){
     if(text.includes("万")){
@@ -1527,39 +1558,96 @@ function renderColorInputs(){
   document.getElementById("totalSavedColorInput").value = state.colors?.totalSaved || "#059669";
 }
 
-function getIncomeSettingMonth(){
-  const yearEl = document.getElementById("incomeYearInput");
-  const monthEl = document.getElementById("incomeMonthInput");
 
-  if(yearEl && monthEl && yearEl.value && monthEl.value){
-    return `${yearEl.value}-${String(monthEl.value).padStart(2,"0")}`;
+function renderBudgetModeSettings(){
+  const modeEl = document.getElementById("budgetModeInput");
+  const monthlyArea = document.getElementById("monthlyBudgetArea");
+  const customArea = document.getElementById("customBudgetArea");
+  if(!modeEl || !monthlyArea || !customArea) return;
+
+  const mode = state.budgetMode || "monthly";
+  modeEl.value = mode;
+  monthlyArea.style.display = mode === "monthly" ? "block" : "none";
+  customArea.style.display = mode === "custom" ? "block" : "none";
+
+  document.getElementById("budgetInput").value = state.budget || "";
+  document.getElementById("customBudgetInput").value = state.customBudget || "";
+  document.getElementById("budgetStartInput").value = state.budgetStartDate || "";
+  document.getElementById("budgetEndInput").value = state.budgetEndDate || "";
+}
+
+function getCustomBudgetItems(){
+  const start = state.budgetStartDate || "";
+  const end = state.budgetEndDate || "";
+  if(!start || !end) return [];
+  return state.items.filter(i => i.date >= start && i.date <= end);
+}
+
+function getBudgetSummary(){
+  const mode = state.budgetMode || "monthly";
+
+  if(mode === "custom"){
+    const start = state.budgetStartDate || "";
+    const end = state.budgetEndDate || "";
+    const totalBudget = Number(state.customBudget || 0);
+
+    if(!start || !end){
+      return { mode, valid:false, message:"请先设置开始日期和结束日期。" };
+    }
+    if(start > end){
+      return { mode, valid:false, message:"预算开始日期不能晚于结束日期。" };
+    }
+
+    const items = getCustomBudgetItems();
+    const spent = sum(items);
+    const remain = totalBudget - spent;
+    const today = todayStr();
+
+    let daysLeft = 0;
+    if(today < start){
+      const s = new Date(start + "T00:00:00");
+      const e = new Date(end + "T00:00:00");
+      daysLeft = Math.floor((e - s) / 86400000) + 1;
+    }else if(today > end){
+      daysLeft = 0;
+    }else{
+      const t = new Date(today + "T00:00:00");
+      const e = new Date(end + "T00:00:00");
+      daysLeft = Math.floor((e - t) / 86400000) + 1;
+    }
+
+    const todayBudget = daysLeft > 0 ? remain / daysLeft : 0;
+
+    return {
+      mode,
+      valid:true,
+      totalBudget,
+      spent,
+      remain,
+      todayBudget,
+      daysLeft,
+      start,
+      end
+    };
   }
 
-  return state.incomeSettingMonth || monthStr();
-}
-
-function renderIncomeMonthSelectors(){
-  const yearEl = document.getElementById("incomeYearInput");
-  const monthEl = document.getElementById("incomeMonthInput");
-  if(!yearEl || !monthEl) return;
-
   const currentMonth = monthStr();
-  const selected = state.incomeSettingMonth || currentMonth;
-  const [selectedYear, selectedMonth] = selected.split("-").map(Number);
+  const currentMonthSpent = sum(monthItems(currentMonth));
+  const totalBudget = Number(state.budget || 0);
+  const remain = totalBudget - currentMonthSpent;
+  const todaySpent = sum(todayItems());
+  const avgDaily = daysLeftInMonth() > 0 ? remain / daysLeftInMonth() : 0;
+  const todayRemain = avgDaily - todaySpent;
 
-  const years = buildYearOptions(new Date().getFullYear());
-  yearEl.innerHTML = years.map(y => `<option value="${y}">${y}年</option>`).join("");
-  monthEl.innerHTML = Array.from({length:12}, (_,i) => `<option value="${i+1}">${i+1}月</option>`).join("");
-
-  yearEl.value = String(selectedYear);
-  monthEl.value = String(selectedMonth);
-}
-
-function syncIncomeSettingMonth(){
-  const selectedMonth = getIncomeSettingMonth();
-  state.incomeSettingMonth = selectedMonth;
-  saveState();
-  renderTop();
+  return {
+    mode,
+    valid:true,
+    totalBudget,
+    spent: currentMonthSpent,
+    remain,
+    todayBudget: todayRemain,
+    daysLeft: daysLeftInMonth()
+  };
 }
 
 function renderTop(){
@@ -1578,10 +1666,8 @@ function renderTop(){
   applyStatColors();
   applyHeroValueSize();
 
-  renderIncomeMonthSelectors();
-
-  const incomeSettingMonth = getIncomeSettingMonth();
-  document.getElementById("incomeInput").value = Number(state.incomes?.[incomeSettingMonth] || 0) || "";
+  document.getElementById("currentMonthText").value = formatMonthCN(currentMonth);
+  document.getElementById("incomeInput").value = currentMonthIncome || "";
 
   const budgetGrid = document.getElementById("budgetGrid");
   const statusBox = document.getElementById("statusBox");
@@ -1589,31 +1675,59 @@ function renderTop(){
   const budgetEnabledEl = document.getElementById("budgetEnabled");
 
   budgetEnabledEl.checked = !!state.budgetEnabled;
-  document.getElementById("budgetInput").value = state.budget || "";
+  renderBudgetModeSettings();
 
   if(state.budgetEnabled){
     budgetGrid.style.display = "grid";
     budgetArea.style.display = "block";
     statusBox.style.display = "block";
 
-    const monthRemain = Number(state.budget || 0) - currentMonthSpent;
-    const avgDaily = daysLeftInMonth() > 0 ? monthRemain / daysLeftInMonth() : 0;
-    const todayRemain = avgDaily - todaySpent;
-
+    const summary = getBudgetSummary();
     const todayRemainEl = document.getElementById("todayRemain");
     const monthRemainEl = document.getElementById("monthRemain");
 
-    todayRemainEl.textContent = money(todayRemain);
-    monthRemainEl.textContent = money(monthRemain);
-    todayRemainEl.className = "hero-value budget-value " + (todayRemain >= 0 ? "good" : "warn");
-    monthRemainEl.className = "hero-value budget-value " + (monthRemain >= 0 ? "good" : "warn");
-
-    if(todayRemain >= 0){
-      statusBox.className = "status ok";
-      statusBox.textContent = `今天还在预算范围内。今天还能花 ${money(todayRemain)}。`;
-    }else{
+    if(!summary.valid){
+      todayRemainEl.textContent = "—";
+      monthRemainEl.textContent = "—";
+      todayRemainEl.className = "hero-value budget-value";
+      monthRemainEl.className = "hero-value budget-value";
       statusBox.className = "status warn";
-      statusBox.textContent = `今天已经超了 ${money(Math.abs(todayRemain))}，后面几天要收一点。`;
+      statusBox.textContent = summary.message;
+      document.querySelector('#budgetGrid .hero-label.sub').textContent = "今天还能花";
+      document.querySelectorAll('#budgetGrid .hero-label.sub')[1].textContent = "本期剩余";
+    }else if(summary.mode === "custom"){
+      const todayBudget = summary.todayBudget;
+      monthRemainEl.textContent = money(summary.remain);
+      todayRemainEl.textContent = money(todayBudget);
+      todayRemainEl.className = "hero-value budget-value " + (todayBudget >= 0 ? "good" : "warn");
+      monthRemainEl.className = "hero-value budget-value " + (summary.remain >= 0 ? "good" : "warn");
+      document.querySelectorAll('#budgetGrid .hero-label.sub')[0].textContent = "今天还能花";
+      document.querySelectorAll('#budgetGrid .hero-label.sub')[1].textContent = "本期剩余";
+
+      statusBox.className = summary.remain >= 0 ? "status ok" : "status warn";
+      if(todayStr() < summary.start){
+        statusBox.textContent = `预算周期：${summary.start} 到 ${summary.end}，尚未开始。`;
+      }else if(todayStr() > summary.end){
+        statusBox.textContent = `预算周期：${summary.start} 到 ${summary.end}，已结束。剩余 ${money(summary.remain)}。`;
+      }else{
+        statusBox.textContent = `预算周期：${summary.start} 到 ${summary.end}。本期已花 ${money(summary.spent)}，剩余 ${money(summary.remain)}。`;
+      }
+    }else{
+      const todayRemain = summary.todayBudget;
+      monthRemainEl.textContent = money(summary.remain);
+      todayRemainEl.textContent = money(todayRemain);
+      todayRemainEl.className = "hero-value budget-value " + (todayRemain >= 0 ? "good" : "warn");
+      monthRemainEl.className = "hero-value budget-value " + (summary.remain >= 0 ? "good" : "warn");
+      document.querySelectorAll('#budgetGrid .hero-label.sub')[0].textContent = "今天还能花";
+      document.querySelectorAll('#budgetGrid .hero-label.sub')[1].textContent = "本月剩余";
+
+      if(todayRemain >= 0){
+        statusBox.className = "status ok";
+        statusBox.textContent = `今天还在预算范围内。今天还能花 ${money(todayRemain)}。`;
+      }else{
+        statusBox.className = "status warn";
+        statusBox.textContent = `今天已经超了 ${money(Math.abs(todayRemain))}，后面几天要收一点。`;
+      }
     }
   }else{
     budgetGrid.style.display = "none";
@@ -1783,18 +1897,6 @@ function toggleHistoryDate(date){
   renderHistory();
 }
 
-function toggleHistoryOlder(){
-  state.historyOlderExpanded = !state.historyOlderExpanded;
-  saveState();
-  renderHistory();
-}
-
-function changeHistoryOlderPage(step){
-  state.historyOlderPage = Math.max(0, Number(state.historyOlderPage || 0) + step);
-  saveState();
-  renderHistory();
-}
-
 function toggleSummaryMonth(month){
   state.summaryExpandedMonths[month] = !state.summaryExpandedMonths[month];
   saveState();
@@ -1835,10 +1937,8 @@ function renderHistory(){
   empty.style.display = "none";
 
   const grouped = groupByDate(items);
-  const recentGroups = grouped.slice(0, 7);
-  const olderGroups = grouped.slice(7);
 
-  function createHistoryDayCard(date, arr){
+  grouped.forEach(([date, arr]) => {
     const sorted = [...arr].sort((a,b)=>b.time-a.time);
     const total = sum(arr);
     const count = arr.length;
@@ -1880,53 +1980,8 @@ function renderHistory(){
         ${rows}
       </div>
     `;
-    return dayBox;
-  }
-
-  recentGroups.forEach(([date, arr]) => {
-    list.appendChild(createHistoryDayCard(date, arr));
+    list.appendChild(dayBox);
   });
-
-  if(olderGroups.length){
-    const pageSize = 7;
-    const totalPages = Math.max(1, Math.ceil(olderGroups.length / pageSize));
-    const currentPage = Math.min(Number(state.historyOlderPage || 0), totalPages - 1);
-    state.historyOlderPage = currentPage;
-    const start = currentPage * pageSize;
-    const currentSlice = olderGroups.slice(start, start + pageSize);
-    const open = !!state.historyOlderExpanded;
-
-    const olderCard = document.createElement("div");
-    olderCard.className = "fold-card" + (open ? " open" : "");
-
-    const olderBodyHtml = currentSlice.map(([date, arr]) => {
-      const wrapper = document.createElement("div");
-      wrapper.appendChild(createHistoryDayCard(date, arr));
-      return wrapper.innerHTML;
-    }).join("");
-
-    olderCard.innerHTML = `
-      <div class="fold-head" onclick="toggleHistoryOlder()">
-        <div>
-          <div class="fold-title">更早记录</div>
-          <div class="fold-meta">默认只展示最近 7 天，其余按页查看</div>
-        </div>
-        <div class="fold-right">
-          <div class="fold-total">${olderGroups.length} 天</div>
-          <div class="fold-arrow">${open ? "收起 ▲" : "展开 ▼"}</div>
-        </div>
-      </div>
-      <div class="fold-body">
-        <div class="footer-actions" style="margin-top:0;margin-bottom:12px;justify-content:space-between;align-items:center">
-          <button class="btn small gray" onclick="changeHistoryOlderPage(-1)" ${currentPage <= 0 ? "disabled" : ""}>上一页</button>
-          <div class="small">第 ${currentPage + 1} / ${totalPages} 页</div>
-          <button class="btn small gray" onclick="changeHistoryOlderPage(1)" ${currentPage >= totalPages - 1 ? "disabled" : ""}>下一页</button>
-        </div>
-        ${olderBodyHtml}
-      </div>
-    `;
-    list.appendChild(olderCard);
-  }
 }
 
 function getDateStringByOffset(offset){
@@ -2545,25 +2600,51 @@ function undoLast(){
 }
 
 function saveBudget(){
-  const val = Number(document.getElementById("budgetInput").value || 0);
-  if(val < 0){
-    alert("预算不对");
-    return;
+  const mode = document.getElementById("budgetModeInput").value || "monthly";
+  state.budgetMode = mode;
+
+  if(mode === "custom"){
+    const customBudget = Number(document.getElementById("customBudgetInput").value || 0);
+    const start = document.getElementById("budgetStartInput").value || "";
+    const end = document.getElementById("budgetEndInput").value || "";
+
+    if(customBudget < 0){
+      alert("预算不对");
+      return;
+    }
+    if(!start || !end){
+      alert("请选择开始日期和结束日期");
+      return;
+    }
+    if(start > end){
+      alert("开始日期不能晚于结束日期");
+      return;
+    }
+
+    state.customBudget = customBudget;
+    state.budgetStartDate = start;
+    state.budgetEndDate = end;
+  }else{
+    const val = Number(document.getElementById("budgetInput").value || 0);
+    if(val < 0){
+      alert("预算不对");
+      return;
+    }
+    state.budget = val;
   }
-  state.budget = val;
+
   saveState();
   render();
 }
 
 function saveIncome(){
-  const targetMonth = getIncomeSettingMonth();
+  const currentMonth = monthStr();
   const val = Number(document.getElementById("incomeInput").value || 0);
   if(val < 0){
     alert("收入不对");
     return;
   }
-  state.incomeSettingMonth = targetMonth;
-  state.incomes[targetMonth] = val;
+  state.incomes[currentMonth] = val;
   saveState();
   render();
 }
@@ -2797,6 +2878,12 @@ document.getElementById("budgetEnabled").onchange = (e) => {
   render();
 };
 
+document.getElementById("budgetModeInput").onchange = (e) => {
+  state.budgetMode = e.target.value;
+  renderBudgetModeSettings();
+  saveState();
+};
+
 document.getElementById("yearSelect").onchange = (e) => {
   state.yearSelected = e.target.value;
   saveState();
@@ -2804,8 +2891,6 @@ document.getElementById("yearSelect").onchange = (e) => {
 };
 document.getElementById("yearInput").onchange = () => syncDayOptions("");
 document.getElementById("monthInput").onchange = () => syncDayOptions("");
-document.getElementById("incomeYearInput").onchange = syncIncomeSettingMonth;
-document.getElementById("incomeMonthInput").onchange = syncIncomeSettingMonth;
 document.getElementById("editYearInput").onchange = () => syncDayOptions("edit");
 document.getElementById("editMonthInput").onchange = () => syncDayOptions("edit");
 
@@ -2824,10 +2909,7 @@ document.getElementById("clearNoteBtn").onclick = () => {
   noteInput.value = "";
   renderNoteClearBtn();
 };
-document.getElementById("searchInput").addEventListener("input", () => {
-  state.historyOlderPage = 0;
-  renderHistory();
-});
+document.getElementById("searchInput").addEventListener("input", renderHistory);
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.onclick = () => {
@@ -2855,8 +2937,6 @@ document.getElementById("editModalMask").addEventListener("click", (e) => {
 window.openEdit = openEdit;
 window.deleteItem = deleteItem;
 window.toggleHistoryDate = toggleHistoryDate;
-window.toggleHistoryOlder = toggleHistoryOlder;
-window.changeHistoryOlderPage = changeHistoryOlderPage;
 window.toggleSummaryMonth = toggleSummaryMonth;
 window.toggleSummaryDate = toggleSummaryDate;
 window.toggleYearSummaryMonth = toggleYearSummaryMonth;
