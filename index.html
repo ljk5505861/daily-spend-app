@@ -780,22 +780,22 @@ input[readonly]{
 
     <div class="hero-subgrid">
       <div class="hero-item">
+        <div class="hero-label sub">本月收入</div>
+        <div class="hero-value top-stat-value" id="monthIncome">¥0</div>
+        <div class="hero-sub">当前月份收入</div>
+      </div>
+      <div class="hero-item">
         <div class="hero-label sub">本月已存</div>
         <div class="hero-value top-stat-value" id="monthSaved">¥0</div>
         <div class="hero-sub">本月收入 - 本月支出</div>
-      </div>
-      <div class="hero-item">
-        <div class="hero-label sub">总已存</div>
-        <div class="hero-value top-stat-value" id="totalSaved">¥0</div>
-        <div class="hero-sub">总收入 - 总支出</div>
       </div>
     </div>
 
     <div class="hero-subgrid income-row">
       <div class="hero-item">
-        <div class="hero-label sub">本月收入</div>
-        <div class="hero-value top-stat-value" id="monthIncome">¥0</div>
-        <div class="hero-sub">当前月份收入</div>
+        <div class="hero-label sub">总已存</div>
+        <div class="hero-value top-stat-value" id="totalSaved">¥0</div>
+        <div class="hero-sub">总收入 - 总支出</div>
       </div>
     </div>
 
@@ -926,8 +926,12 @@ input[readonly]{
     <div class="section-title">本月收入设置</div>
     <div class="row">
       <div>
-        <label>当前月份</label>
-        <input id="currentMonthText" type="text" readonly>
+        <label for="incomeYearInput">选择年份</label>
+        <select id="incomeYearInput"></select>
+      </div>
+      <div>
+        <label for="incomeMonthInput">选择月份</label>
+        <select id="incomeMonthInput"></select>
       </div>
       <div>
         <label for="incomeInput">本月收入（元）</label>
@@ -935,7 +939,7 @@ input[readonly]{
       </div>
     </div>
     <div class="footer-actions">
-      <button class="btn primary" id="saveIncomeBtn">保存本月收入</button>
+      <button class="btn primary" id="saveIncomeBtn">保存所选月份收入</button>
     </div>
   </div>
 
@@ -1117,7 +1121,8 @@ const DEFAULT_STATE = {
   summaryExpandedMonths:{},
   summaryExpandedDates:{},
   yearSummaryExpandedMonths:{},
-  yearSelected:String(new Date().getFullYear())
+  yearSelected:String(new Date().getFullYear()),
+  incomeSettingMonth:""
 };
 
 let saved = {};
@@ -1461,9 +1466,9 @@ function applyStatColors(){
 function applyHeroValueSize(){
   const pairGroups = [
     ["todaySpent", "monthSpent"],
-    ["monthSaved", "totalSaved"]
+    ["monthIncome", "monthSaved"]
   ];
-  const singleGroups = ["monthIncome"];
+  const singleGroups = ["totalSaved"];
 
   function getSizeClass(text){
     if(text.includes("万")){
@@ -1522,6 +1527,41 @@ function renderColorInputs(){
   document.getElementById("totalSavedColorInput").value = state.colors?.totalSaved || "#059669";
 }
 
+function getIncomeSettingMonth(){
+  const yearEl = document.getElementById("incomeYearInput");
+  const monthEl = document.getElementById("incomeMonthInput");
+
+  if(yearEl && monthEl && yearEl.value && monthEl.value){
+    return `${yearEl.value}-${String(monthEl.value).padStart(2,"0")}`;
+  }
+
+  return state.incomeSettingMonth || monthStr();
+}
+
+function renderIncomeMonthSelectors(){
+  const yearEl = document.getElementById("incomeYearInput");
+  const monthEl = document.getElementById("incomeMonthInput");
+  if(!yearEl || !monthEl) return;
+
+  const currentMonth = monthStr();
+  const selected = state.incomeSettingMonth || currentMonth;
+  const [selectedYear, selectedMonth] = selected.split("-").map(Number);
+
+  const years = buildYearOptions(new Date().getFullYear());
+  yearEl.innerHTML = years.map(y => `<option value="${y}">${y}年</option>`).join("");
+  monthEl.innerHTML = Array.from({length:12}, (_,i) => `<option value="${i+1}">${i+1}月</option>`).join("");
+
+  yearEl.value = String(selectedYear);
+  monthEl.value = String(selectedMonth);
+}
+
+function syncIncomeSettingMonth(){
+  const selectedMonth = getIncomeSettingMonth();
+  state.incomeSettingMonth = selectedMonth;
+  saveState();
+  renderTop();
+}
+
 function renderTop(){
   const todaySpent = sum(todayItems());
   const currentMonth = monthStr();
@@ -1538,8 +1578,10 @@ function renderTop(){
   applyStatColors();
   applyHeroValueSize();
 
-  document.getElementById("currentMonthText").value = formatMonthCN(currentMonth);
-  document.getElementById("incomeInput").value = currentMonthIncome || "";
+  renderIncomeMonthSelectors();
+
+  const incomeSettingMonth = getIncomeSettingMonth();
+  document.getElementById("incomeInput").value = Number(state.incomes?.[incomeSettingMonth] || 0) || "";
 
   const budgetGrid = document.getElementById("budgetGrid");
   const statusBox = document.getElementById("statusBox");
@@ -1741,6 +1783,18 @@ function toggleHistoryDate(date){
   renderHistory();
 }
 
+function toggleHistoryOlder(){
+  state.historyOlderExpanded = !state.historyOlderExpanded;
+  saveState();
+  renderHistory();
+}
+
+function changeHistoryOlderPage(step){
+  state.historyOlderPage = Math.max(0, Number(state.historyOlderPage || 0) + step);
+  saveState();
+  renderHistory();
+}
+
 function toggleSummaryMonth(month){
   state.summaryExpandedMonths[month] = !state.summaryExpandedMonths[month];
   saveState();
@@ -1781,8 +1835,10 @@ function renderHistory(){
   empty.style.display = "none";
 
   const grouped = groupByDate(items);
+  const recentGroups = grouped.slice(0, 7);
+  const olderGroups = grouped.slice(7);
 
-  grouped.forEach(([date, arr]) => {
+  function createHistoryDayCard(date, arr){
     const sorted = [...arr].sort((a,b)=>b.time-a.time);
     const total = sum(arr);
     const count = arr.length;
@@ -1824,8 +1880,53 @@ function renderHistory(){
         ${rows}
       </div>
     `;
-    list.appendChild(dayBox);
+    return dayBox;
+  }
+
+  recentGroups.forEach(([date, arr]) => {
+    list.appendChild(createHistoryDayCard(date, arr));
   });
+
+  if(olderGroups.length){
+    const pageSize = 7;
+    const totalPages = Math.max(1, Math.ceil(olderGroups.length / pageSize));
+    const currentPage = Math.min(Number(state.historyOlderPage || 0), totalPages - 1);
+    state.historyOlderPage = currentPage;
+    const start = currentPage * pageSize;
+    const currentSlice = olderGroups.slice(start, start + pageSize);
+    const open = !!state.historyOlderExpanded;
+
+    const olderCard = document.createElement("div");
+    olderCard.className = "fold-card" + (open ? " open" : "");
+
+    const olderBodyHtml = currentSlice.map(([date, arr]) => {
+      const wrapper = document.createElement("div");
+      wrapper.appendChild(createHistoryDayCard(date, arr));
+      return wrapper.innerHTML;
+    }).join("");
+
+    olderCard.innerHTML = `
+      <div class="fold-head" onclick="toggleHistoryOlder()">
+        <div>
+          <div class="fold-title">更早记录</div>
+          <div class="fold-meta">默认只展示最近 7 天，其余按页查看</div>
+        </div>
+        <div class="fold-right">
+          <div class="fold-total">${olderGroups.length} 天</div>
+          <div class="fold-arrow">${open ? "收起 ▲" : "展开 ▼"}</div>
+        </div>
+      </div>
+      <div class="fold-body">
+        <div class="footer-actions" style="margin-top:0;margin-bottom:12px;justify-content:space-between;align-items:center">
+          <button class="btn small gray" onclick="changeHistoryOlderPage(-1)" ${currentPage <= 0 ? "disabled" : ""}>上一页</button>
+          <div class="small">第 ${currentPage + 1} / ${totalPages} 页</div>
+          <button class="btn small gray" onclick="changeHistoryOlderPage(1)" ${currentPage >= totalPages - 1 ? "disabled" : ""}>下一页</button>
+        </div>
+        ${olderBodyHtml}
+      </div>
+    `;
+    list.appendChild(olderCard);
+  }
 }
 
 function getDateStringByOffset(offset){
@@ -2455,13 +2556,14 @@ function saveBudget(){
 }
 
 function saveIncome(){
-  const currentMonth = monthStr();
+  const targetMonth = getIncomeSettingMonth();
   const val = Number(document.getElementById("incomeInput").value || 0);
   if(val < 0){
     alert("收入不对");
     return;
   }
-  state.incomes[currentMonth] = val;
+  state.incomeSettingMonth = targetMonth;
+  state.incomes[targetMonth] = val;
   saveState();
   render();
 }
@@ -2702,6 +2804,8 @@ document.getElementById("yearSelect").onchange = (e) => {
 };
 document.getElementById("yearInput").onchange = () => syncDayOptions("");
 document.getElementById("monthInput").onchange = () => syncDayOptions("");
+document.getElementById("incomeYearInput").onchange = syncIncomeSettingMonth;
+document.getElementById("incomeMonthInput").onchange = syncIncomeSettingMonth;
 document.getElementById("editYearInput").onchange = () => syncDayOptions("edit");
 document.getElementById("editMonthInput").onchange = () => syncDayOptions("edit");
 
@@ -2720,7 +2824,10 @@ document.getElementById("clearNoteBtn").onclick = () => {
   noteInput.value = "";
   renderNoteClearBtn();
 };
-document.getElementById("searchInput").addEventListener("input", renderHistory);
+document.getElementById("searchInput").addEventListener("input", () => {
+  state.historyOlderPage = 0;
+  renderHistory();
+});
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.onclick = () => {
@@ -2748,6 +2855,8 @@ document.getElementById("editModalMask").addEventListener("click", (e) => {
 window.openEdit = openEdit;
 window.deleteItem = deleteItem;
 window.toggleHistoryDate = toggleHistoryDate;
+window.toggleHistoryOlder = toggleHistoryOlder;
+window.changeHistoryOlderPage = changeHistoryOlderPage;
 window.toggleSummaryMonth = toggleSummaryMonth;
 window.toggleSummaryDate = toggleSummaryDate;
 window.toggleYearSummaryMonth = toggleYearSummaryMonth;
@@ -2757,15 +2866,6 @@ document.getElementById("confirmNoBtn").onclick = closeConfirm;
 document.getElementById("confirmMask").addEventListener("click", (e) => {
   if(e.target.id === "confirmMask") closeConfirm();
 });
-
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch(err => {
-      console.error('SW register failed:', err);
-    });
-  });
-}
 
 render();
 </script>
