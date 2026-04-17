@@ -104,11 +104,11 @@ body{
 .budget-value{
   font-size:42px;
 }
-.top-stat-value.digits-4{ font-size:34px; }
-.top-stat-value.digits-5{ font-size:28px; }
-.top-stat-value.digits-6{ font-size:24px; }
-.top-stat-value.wan-value{ font-size:30px; }
-.top-stat-value.wan-value.long-wan{ font-size:22px; }
+.top-stat-value.digits-4, .budget-value.digits-4{ font-size:34px; }
+.top-stat-value.digits-5, .budget-value.digits-5{ font-size:28px; }
+.top-stat-value.digits-6, .budget-value.digits-6{ font-size:24px; }
+.top-stat-value.wan-value, .budget-value.wan-value{ font-size:30px; }
+.top-stat-value.wan-value.long-wan, .budget-value.wan-value.long-wan{ font-size:22px; }
 
 .hero-sub{
   margin-top:8px;
@@ -1529,11 +1529,14 @@ function applyHeroValueSize(){
   const singleGroups = ["totalSaved"];
 
   function getSizeClass(text){
-    if(text.includes("万")){
-      return text.length >= 6 ? "long-wan" : "wan-value";
+    const normalized = String(text || "").trim();
+    if(normalized.includes("万")){
+      const pureWan = normalized.replace(/[¥\-\.,万]/g, "");
+      return pureWan.length >= 6 ? "long-wan" : "wan-value";
     }
-    const pure = text.replace(/[¥\.\,]/g, "");
-    const len = pure.length;
+    const pure = normalized.replace(/[¥\-\.,]/g, "");
+    const hasMinus = normalized.includes("-");
+    const len = pure.length + (hasMinus ? 1 : 0);
     if(len >= 6) return "digits-6";
     if(len === 5) return "digits-5";
     if(len === 4) return "digits-4";
