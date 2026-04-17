@@ -1664,6 +1664,7 @@ function getBudgetSummary(){
     const spent = sum(items);
     const remain = totalBudget - spent;
     const today = todayStr();
+    const todaySpent = sum(todayItems());
 
     let daysLeft = 0;
     if(today < start){
@@ -1678,7 +1679,15 @@ function getBudgetSummary(){
       daysLeft = Math.floor((e - t) / 86400000) + 1;
     }
 
-    const todayBudget = daysLeft > 0 ? remain / daysLeft : 0;
+    let todayBudget = 0;
+    if(today < start){
+      todayBudget = daysLeft > 0 ? remain / daysLeft : 0;
+    }else if(today > end){
+      todayBudget = 0;
+    }else{
+      const dailyBase = daysLeft > 0 ? remain / daysLeft : 0;
+      todayBudget = dailyBase - todaySpent;
+    }
 
     return {
       mode,
@@ -1687,6 +1696,7 @@ function getBudgetSummary(){
       spent,
       remain,
       todayBudget,
+      todaySpent,
       daysLeft,
       start,
       end
